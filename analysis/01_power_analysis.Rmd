@@ -1,0 +1,187 @@
+---
+title: "Power Analysis MP1 additional data collection"
+author: "Manuel Bohn"
+date: "26 9 2018"
+output: html_document
+---
+
+```{r importing data, include=FALSE}
+
+library(tidyverse)
+library(lsr)
+library(pwr)
+library(knitr)
+
+# create clade variable
+
+mp_data <- read.csv(file = "../data/pilot_data/01_manyprimates_pilot_merged_data.csv") %>%
+  mutate(clade = case_when(species == "chimpanzee" ~ "ape",
+                           species == "ring_tailed_lemur" ~ "lemur",
+                           species == "bonobo"~ "ape",
+                                     species == "gorilla"~ "ape",
+                                     species == "black_and_white_ruffed_lemur"~ "lemur",
+                                     species == "brown_capuchin_monkey" ~ "new_world_monkey",
+                                     species == "black_faced_spider_monkey" ~ "new_world_monkey",
+                                     species == "long_tailed_macaque" ~ "old_world_monkey",
+                                     species == "squirrel_monkey"~ "new_world_monkey",
+                                     species == "orangutan"~ "ape",
+                                     species == "barbary_macaque"~ "old_world_monkey",
+                                     species == "rhesus_macaque"~ "old_world_monkey"))
+
+
+```
+
+# Power analysis based on data pooled across conditions
+
+## Effect sizes from round 1
+
+As a first step, we split the data by clade and get an overall effect sizes for comparison to chance across conditions. Data is aggregated per individual. Effect size is based in one sample t-test, chance level is 1/3.
+```{r effect sizes from round 1 per clade, echo = FALSE}
+
+
+effect_sizes <- mp_data %>%  
+  group_by(clade, subject_site) %>%
+  summarise(correct = mean(correct)) %>%
+  summarize(correct = list(correct)) %>%
+  group_by(clade ) %>%
+  mutate(n = length(unlist(correct)),
+         mean = mean(unlist(correct)),
+         sd = sd(unlist(correct)),
+         t = t.test(unlist(correct), mu = 1/3)$statistic,
+         p = t.test(unlist(correct), mu = 1/3)$p.value,
+  d = cohensD(unlist(correct), mu = 1/3)) %>%
+  select(clade,n,mean, sd,t,p,d)
+
+effect_sizes%>%
+  knitr::kable(digits = 2)
+
+```
+
+## Power analysis 
+
+Next we do the power analysis per clade based on the effect size from round 1. Desired power is .80, alpha is .05
+
+### Apes
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes %>% filter(clade == "ape") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+This suggests that the minimum number of subjects for any given ape species is 3. This is biased by the fact that we have only great apes, so we might want to consider a larger minimum sample size for gibbons.
+
+### Old World monkeys
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes %>% filter(clade == "old_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+For Old World Monkeys, we need at least 6 subjects per species. 
+
+### New World monkeys
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes %>% filter(clade == "new_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+For New World Monkeys, we also need at least 6 subjects per species. 
+
+### Lemurs
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes %>% filter(clade == "lemur") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+For Lemurs we also need at least 4 subjects per species. The number is lower than in the case of monkeys because lemur performance was less variable during the pilot. 
+
+# Power analysis based on delay conditions only
+
+The long and medium delay conditions are more informative with respect to short-term memory abilities. Here is the same analysis as above based on data averaged across the two delay conditions.
+
+## Effect sizes from round 1
+
+Again, effect size is based in one sample t-test, chance level is 1/3.
+
+```{r effect sizes from round 1 per clade for delay, echo = FALSE}
+
+
+effect_sizes_delay <- mp_data %>%
+  filter(condition != "short")%>%
+  group_by(clade, subject_site) %>%
+  summarise(correct = mean(correct)) %>%
+  summarize(correct = list(correct)) %>%
+  group_by(clade ) %>%
+  mutate(n = length(unlist(correct)),
+         mean = mean(unlist(correct)),
+         sd = sd(unlist(correct)),
+         t = t.test(unlist(correct), mu = 1/3)$statistic,
+         p = t.test(unlist(correct), mu = 1/3)$p.value,
+  d = cohensD(unlist(correct), mu = 1/3)) %>%
+  select(clade,n,mean, sd,t,p,d)
+
+effect_sizes_delay%>%
+  knitr::kable(digits = 2)
+
+```
+
+## Power analysis 
+
+Again, desired power is .80, alpha is .05
+
+### Apes
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes_delay %>% filter(clade == "ape") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+Minimum number of subjects for apes based on long delay condition is 4.
+
+### Old World monkeys
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes_delay %>% filter(clade == "old_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+For Old World Monkeys, we would need at least 9 subjects to achieve desired power. 
+
+### New World monkeys
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes_delay %>% filter(clade == "new_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+For New World Monkeys, we would need at least 12. 
+
+### Lemurs
+
+```{r, echo = FALSE}
+
+pwr.t.test( d = effect_sizes_delay %>% filter(clade == "lemur") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+
+
+```
+
+We would need at least 5 lemurs per species. 
+
+
+
