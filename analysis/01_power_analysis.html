@@ -130,8 +130,8 @@ $(document).ready(function () {
 
 <div id="power-analysis-based-on-data-pooled-across-conditions" class="section level1">
 <h1>Power analysis based on data pooled across conditions</h1>
-<div id="effect-sizes-from-round-1" class="section level2">
-<h2>Effect sizes from round 1</h2>
+<div id="effect-sizes-from-pilot" class="section level2">
+<h2>Effect sizes from Pilot</h2>
 <p>As a first step, we split the data by clade and get an overall effect sizes for comparison to chance across conditions. Data is aggregated per individual. Effect size is based in one sample t-test, chance level is 1/3.</p>
 <table>
 <thead>
@@ -187,53 +187,85 @@ $(document).ready(function () {
 </div>
 <div id="power-analysis" class="section level2">
 <h2>Power analysis</h2>
-<p>Next we do the power analysis per clade based on the effect size from round 1. Desired power is .80, alpha is .05</p>
+<p>Next we do the power analysis per clade based on the effect size from our Pilot. Desired power is .80, alpha is .05</p>
 <div id="apes" class="section level3">
 <h3>Apes</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 2.917565
-##               d = 3.444485
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2.92</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
 <p>This suggests that the minimum number of subjects for any given ape species is 3. This is biased by the fact that we have only great apes, so we might want to consider a larger minimum sample size for gibbons.</p>
 </div>
 <div id="old-world-monkeys" class="section level3">
 <h3>Old World monkeys</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 5.161986
-##               d = 1.633047
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">5.16</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
 <p>For Old World Monkeys, we need at least 6 subjects per species.</p>
 </div>
 <div id="new-world-monkeys" class="section level3">
 <h3>New World monkeys</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 5.62377
-##               d = 1.51412
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">5.62</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
 <p>For New World Monkeys, we also need at least 6 subjects per species.</p>
 </div>
 <div id="lemurs" class="section level3">
 <h3>Lemurs</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 3.783334
-##               d = 2.279798
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">3.78</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
 <p>For Lemurs we also need at least 4 subjects per species. The number is lower than in the case of monkeys because lemur performance was less variable during the pilot.</p>
 </div>
 </div>
@@ -241,8 +273,8 @@ $(document).ready(function () {
 <div id="power-analysis-based-on-delay-conditions-only" class="section level1">
 <h1>Power analysis based on delay conditions only</h1>
 <p>The long and medium delay conditions are more informative with respect to short-term memory abilities. Here is the same analysis as above based on data averaged across the two delay conditions.</p>
-<div id="effect-sizes-from-round-1-1" class="section level2">
-<h2>Effect sizes from round 1</h2>
+<div id="effect-sizes-from-pilot-1" class="section level2">
+<h2>Effect sizes from Pilot</h2>
 <p>Again, effect size is based in one sample t-test, chance level is 1/3.</p>
 <table>
 <thead>
@@ -301,50 +333,82 @@ $(document).ready(function () {
 <p>Again, desired power is .80, alpha is .05</p>
 <div id="apes-1" class="section level3">
 <h3>Apes</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 3.473178
-##               d = 2.562563
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
-<p>Minimum number of subjects for apes based on long delay condition is 4.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">3.47</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
+<p>Minimum number of subjects for apes based on delay conditions is 4.</p>
 </div>
 <div id="old-world-monkeys-1" class="section level3">
 <h3>Old World monkeys</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 8.185063
-##               d = 1.137837
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
-<p>For Old World Monkeys, we would need at least 9 subjects to achieve desired power.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">8.19</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
+<p>For Old World monkeys, we would need at least 9 subjects per species to achieve desired power.</p>
 </div>
 <div id="new-world-monkeys-1" class="section level3">
 <h3>New World monkeys</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 11.9449
-##               d = 0.8911563
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
-<p>For New World Monkeys, we would need at least 12.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">11.94</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
+<p>For New World Monkeys, we would need at least 12 per species.</p>
 </div>
 <div id="lemurs-1" class="section level3">
 <h3>Lemurs</h3>
-<pre><code>## 
-##      One-sample t test power calculation 
-## 
-##               n = 4.216193
-##               d = 2.002405
-##       sig.level = 0.05
-##           power = 0.8
-##     alternative = two.sided</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="right">sig.level</th>
+<th align="right">power</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">4.22</td>
+<td align="right">0.05</td>
+<td align="right">0.8</td>
+</tr>
+</tbody>
+</table>
 <p>We would need at least 5 lemurs per species.</p>
 </div>
 </div>

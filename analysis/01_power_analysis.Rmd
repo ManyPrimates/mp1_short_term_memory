@@ -11,6 +11,7 @@ library(tidyverse)
 library(lsr)
 library(pwr)
 library(knitr)
+library(broom)
 
 # create clade variable
 
@@ -33,7 +34,7 @@ mp_data <- read.csv(file = "../data/pilot_data/01_manyprimates_pilot_merged_data
 
 # Power analysis based on data pooled across conditions
 
-## Effect sizes from round 1
+## Effect sizes from Pilot
 
 As a first step, we split the data by clade and get an overall effect sizes for comparison to chance across conditions. Data is aggregated per individual. Effect size is based in one sample t-test, chance level is 1/3.
 ```{r effect sizes from round 1 per clade, echo = FALSE}
@@ -59,15 +60,15 @@ effect_sizes%>%
 
 ## Power analysis 
 
-Next we do the power analysis per clade based on the effect size from round 1. Desired power is .80, alpha is .05
+Next we do the power analysis per clade based on the effect size from our Pilot. Desired power is .80, alpha is .05
 
 ### Apes
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes %>% filter(clade == "ape") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+a_all <- pwr.t.test( d = effect_sizes %>% filter(clade == "ape") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(a_all)%>%kable(digits = 2)
 ```
 
 This suggests that the minimum number of subjects for any given ape species is 3. This is biased by the fact that we have only great apes, so we might want to consider a larger minimum sample size for gibbons.
@@ -76,9 +77,9 @@ This suggests that the minimum number of subjects for any given ape species is 3
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes %>% filter(clade == "old_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+o_all <- pwr.t.test( d = effect_sizes %>% filter(clade == "old_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(o_all)%>%kable(digits = 2)
 ```
 
 For Old World Monkeys, we need at least 6 subjects per species. 
@@ -87,9 +88,9 @@ For Old World Monkeys, we need at least 6 subjects per species.
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes %>% filter(clade == "new_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+n_all <- pwr.t.test( d = effect_sizes %>% filter(clade == "new_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(n_all)%>%kable(digits = 2)
 ```
 
 For New World Monkeys, we also need at least 6 subjects per species. 
@@ -98,9 +99,9 @@ For New World Monkeys, we also need at least 6 subjects per species.
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes %>% filter(clade == "lemur") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+l_all <- pwr.t.test( d = effect_sizes %>% filter(clade == "lemur") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(l_all)%>%kable(digits = 2)
 ```
 
 For Lemurs we also need at least 4 subjects per species. The number is lower than in the case of monkeys because lemur performance was less variable during the pilot. 
@@ -109,7 +110,7 @@ For Lemurs we also need at least 4 subjects per species. The number is lower tha
 
 The long and medium delay conditions are more informative with respect to short-term memory abilities. Here is the same analysis as above based on data averaged across the two delay conditions.
 
-## Effect sizes from round 1
+## Effect sizes from Pilot
 
 Again, effect size is based in one sample t-test, chance level is 1/3.
 
@@ -143,42 +144,42 @@ Again, desired power is .80, alpha is .05
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes_delay %>% filter(clade == "ape") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+a_delay <- pwr.t.test( d = effect_sizes_delay %>% filter(clade == "ape") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(a_delay)%>%kable(digits = 2)
 ```
 
-Minimum number of subjects for apes based on long delay condition is 4.
+Minimum number of subjects for apes based on delay conditions is 4.
 
 ### Old World monkeys
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes_delay %>% filter(clade == "old_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+o_delay <- pwr.t.test( d = effect_sizes_delay %>% filter(clade == "old_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(o_delay)%>%kable(digits = 2)
 ```
 
-For Old World Monkeys, we would need at least 9 subjects to achieve desired power. 
+For Old World monkeys, we would need at least 9 subjects per species to achieve desired power. 
 
 ### New World monkeys
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes_delay %>% filter(clade == "new_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+n_delay <- pwr.t.test( d = effect_sizes_delay %>% filter(clade == "new_world_monkey") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(n_delay)%>%kable(digits = 2)
 ```
 
-For New World Monkeys, we would need at least 12. 
+For New World Monkeys, we would need at least 12 per species. 
 
 ### Lemurs
 
 ```{r, echo = FALSE}
 
-pwr.t.test( d = effect_sizes_delay %>% filter(clade == "lemur") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
+l_delay <- pwr.t.test( d = effect_sizes_delay %>% filter(clade == "lemur") %>% pull(d), sig.level = .05 , power = .8, type = c("one.sample"))
 
-
+tidy(l_delay)%>%kable(digits = 2)
 ```
 
 We would need at least 5 lemurs per species. 
