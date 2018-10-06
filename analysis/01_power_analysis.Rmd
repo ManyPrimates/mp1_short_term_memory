@@ -24,18 +24,12 @@ library(broom)
 # create clade variable
 
 mp_data <- read.csv(file = "../data/pilot_data/01_manyprimates_pilot_merged_data.csv") %>%
-  mutate(clade = case_when(species == "chimpanzee" ~ "ape",
-                           species == "ring_tailed_lemur" ~ "lemur",
-                           species == "bonobo" ~ "ape",
-                           species == "gorilla" ~ "ape",
-                           species == "black_and_white_ruffed_lemur" ~ "lemur",
-                           species == "brown_capuchin_monkey" ~ "new_world_monkey",
-                           species == "black_faced_spider_monkey" ~ "new_world_monkey",
-                           species == "long_tailed_macaque" ~ "old_world_monkey",
-                           species == "squirrel_monkey" ~ "new_world_monkey",
-                           species == "orangutan" ~ "ape",
-                           species == "barbary_macaque" ~ "old_world_monkey",
-                           species == "rhesus_macaque"~ "old_world_monkey"),
+  mutate(clade = case_when(
+    species %in% c("chimpanzee", "bonobo", "gorilla", "orangutan") ~ "ape",
+    species %in% c("long_tailed_macaque", "barbary_macaque", "rhesus_macaque") ~ "old_world_monkey",
+    species %in% c("brown_capuchin_monkey", "black_faced_spider_monkey", "squirrel_monkey") ~ 
+      "new_world_monkey",
+    species %in% c("ring_tailed_lemur", "black_and_white_ruffed_lemur") ~ "lemur"),
          clade = fct_relevel(clade, 'ape', 'old_world_monkey', 'new_world_monkey'))
 ```
 
