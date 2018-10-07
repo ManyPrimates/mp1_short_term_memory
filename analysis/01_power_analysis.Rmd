@@ -9,9 +9,6 @@ output:
     theme: paper
     toc: yes
     toc_float: yes
-  html_document:
-    df_print: paged
-    toc: yes
 ---
 
 ```{r importing data, message=FALSE}
@@ -20,17 +17,13 @@ library(lsr) # for cohen's d
 library(pwr)
 library(knitr)
 library(broom)
+```
 
+```{r}
 # create clade variable
-
-mp_data <- read.csv(file = "../data/pilot_data/01_manyprimates_pilot_merged_data.csv") %>%
-  mutate(clade = case_when(
-    species %in% c("chimpanzee", "bonobo", "gorilla", "orangutan") ~ "ape",
-    species %in% c("long_tailed_macaque", "barbary_macaque", "rhesus_macaque") ~ "old_world_monkey",
-    species %in% c("brown_capuchin_monkey", "black_faced_spider_monkey", "squirrel_monkey") ~ 
-      "new_world_monkey",
-    species %in% c("ring_tailed_lemur", "black_and_white_ruffed_lemur") ~ "lemur"),
-         clade = fct_relevel(clade, 'ape', 'old_world_monkey', 'new_world_monkey'))
+species_data <- read.csv("../data/species_data.csv") %>% select(species, clade)
+mp_data <- read.csv("../data/pilot_data/01_manyprimates_pilot_merged_data.csv") %>%
+  left_join(species_data, by = 'species')
 ```
 
 # Power analysis based on data pooled across conditions
