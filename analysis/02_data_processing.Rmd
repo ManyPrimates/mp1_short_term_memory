@@ -27,7 +27,7 @@ sample <- read_delim(str_c(path, "coding_sample.csv"), delim = ",")
 fail_str <- "--- FAIL ---\n"
 
 do_checks <- function(df) {
-  cat("check column number (= 19?): ")
+  cat("check column number (= 18?): ")
   if (ncol(sample) == ncol(df)) cat("pass\n")
   else {cat(fail_str); print(ncol(df))}
 
@@ -96,6 +96,135 @@ do_checks(lpz_raw)
 lpz <- lpz_raw %>%
   select(-secondary_pick)%>%
   rename(correct="correct (1=correct)")%>%
+  mutate(species = gsub(" ", "_", species))
+```
+
+## Duke
+
+```{r, message=FALSE}
+duke_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_Duke.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(duke_raw)
+```
+```{r}
+# change data file
+duke <- duke_raw %>%
+  filter(!is.na(pick))%>%
+  mutate(species = gsub(" ", "_", species))
+```
+
+Age information is missing.
+
+## ECNU
+
+```{r, message=FALSE}
+ecnu_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_ECNU_NEW.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(ecnu_raw)
+```
+
+```{r}
+# change data file
+ecnu <- ecnu_raw %>%
+  mutate(species = gsub(" ", "_", species))
+```
+
+Board size: 107
+
+## FandM
+
+```{r, message=FALSE}
+fandm_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_FandM.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(fandm_raw)
+```
+demographic data only in the first row of each session
+
+## LRC
+
+```{r, message=FALSE}
+lrc_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_LRC.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(lrc_raw)
+```
+
+Performance data not included yet.
+
+## TBRI
+
+```{r, message=FALSE}
+tbri_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_TBRI.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(tbri_raw)
+```
+
+```{r}
+# change data file
+tbri <- tbri_raw %>%
+  filter(pick!=("n/a"))%>%
+  mutate(pick=as.numeric(pick), correct=as.numeric(correct))%>%
+  mutate(species = gsub(" ", "_", species))
+```
+
+species unclear (labelled as "baboon")
+
+
+## Doué-la-Fontaine
+
+```{r, message=FALSE}
+doue_la_fontaine_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_template_Doué-la-Fontaine.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(doue_la_fontaine_raw)
+```
+
+```{r}
+# change data file
+doue_la_fontaine <- doue_la_fontaine_raw
+```
+
+
+## Vienna Zoo
+
+```{r, message=FALSE}
+vienna_zoo_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_Vienna_Zoo.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(vienna_zoo_raw)
+```
+
+```{r}
+# change data file
+vienna_zoo <- vienna_zoo_raw %>%
+  filter(!is.na(pick))%>%
+  mutate(species = gsub(" ", "_", species))
+```
+
+## WKPRC
+
+```{r, message=FALSE}
+wkprc_raw <- read_excel(str_c(path, "ManyPrimates_mp1_datasheet_WKPRC.xlsx"), sheet = 2)
+```
+
+```{r}
+do_checks(wkprc_raw)
+```
+
+```{r}
+# change data file
+wkprc <- wkprc_raw %>%
   mutate(species = gsub(" ", "_", species))
 ```
 
