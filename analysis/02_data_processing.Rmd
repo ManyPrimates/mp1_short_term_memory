@@ -20,11 +20,9 @@ library(readxl)
 ```{r}
 check_missing <- function(name, dfs) {
   dfs[[name]] %>% 
-    select(-comment) %>% 
-    select_if(function(x) any(is.na(x))) %>% 
     mutate(file = name, rows = nrow(.)) %>% 
     group_by(file, rows) %>% 
-    summarise_each(funs(sum(is.na(.))))
+    summarise_each(funs(ifelse(sum(is.na(.)) == 0, NA, sum(is.na(.)))))
 }
 ```
 
@@ -177,10 +175,15 @@ raw_dfs[['Vienna_Zoo']] %>%
 
 # Check for missing values
 
-For each file, display total number of rows (for reference) and the number of missing values for each column (if there are any)
+For each file, display total number of rows (for reference) and the number of missing values for each column.  
+(Only for files with missing values & only for columns in which any file has missing values. Ignore `comment` column.)
 
 ```{r}
-lapply(site_names, check_missing, raw_dfs)
+lapply(site_names, check_missing, raw_dfs) %>% 
+  map_df(bind_rows) %>% 
+  select(-comment) %>% 
+  filter_at(vars(-file, -rows), any_vars(!is.na(.))) %>%
+  select_if(~ any(!is.na(.)))
 ```
 
 # Check values I
