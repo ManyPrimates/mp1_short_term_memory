@@ -1,7 +1,7 @@
 date,site,species,subject_site,age,cup_distance,task_experience,board_size,test_situation,session,block,trial,condition,hiding_location,pick,correct,researcher,comment
-20190431,stanford,chimpanzee,manuel_sta,7.5,10,yes,100,group,1,1,1,short,2,2,1,manuel,
-,,,,,,no,,single,1,1,2,short,3,,,,
-,,,,,,,,,1,1,3,short,1,,,,
+20190431,stanford,chimpanzee,manuel_sta,7.5,10,yes,100,group,1,1,1,short,2,1,0,manuel,
+,,,,,,no,,single,1,1,2,short,3,2,1,,
+,,,,,,,,,1,1,3,short,1,3,,,
 ,,,,,,,,,1,2,4,long,2,,,,
 ,,,,,,,,,1,2,5,long,1,,,,
 ,,,,,,,,,1,2,6,long,1,,,,
