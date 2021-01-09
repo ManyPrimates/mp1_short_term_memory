@@ -1,6 +1,5 @@
 ---
 title: "ManyPrimates1_Data_Processing"
-date: "7 Nov 2020"
 output:
   html_notebook:
     code_folding: hide
@@ -13,16 +12,32 @@ output:
 ```{r, message=FALSE}
 library(tidyverse)
 library(readxl)
+library(googledrive)
 ```
 
 # Define helper functions
 
 ```{r}
+download_file <- function(row, path) try({
+  site = row$site[1]
+  file <- str_c('ManyPrimates_mp1_datasheet_', site, '.xlsx')
+  cat("Downloading data for", site, "\n")
+  drive_download(as_id(row$id[1]), path = str_c(path, file), overwrite = TRUE, verbose = FALSE)
+})
+
+read_file <- function(site, path) try({
+  file <- str_c('ManyPrimates_mp1_datasheet_', site, '.xlsx')
+  cat("Reading", file, "\n")
+  read_xlsx(str_c(path, file), sheet = 'Data', na = c('NA', 'n/a'), guess_max = 1500) # add to list of NA values (if necessary)
+})
+```
+  
+```{r}
 check_missing <- function(name, dfs) {
   dfs[[name]] %>% 
     mutate(file = name, rows = nrow(.)) %>% 
     group_by(file, rows) %>% 
-    summarise_each(funs(ifelse(sum(is.na(.)) == 0, NA, sum(is.na(.)))))
+    summarise_each(list(~ ifelse(sum(is.na(.)) == 0, NA, sum(is.na(.)))))
 }
 ```
 
@@ -96,82 +111,46 @@ check_site_specific <- function(name, dfs) {
 
 # Load Data
 
+```{r, message=FALSE}
+# the very 1st time, run this in console
+# give access to ManyPrimates Google Drive
+drive_auth()
+```
+
+```{r}
+# get sheet with sites and datasheet Google Drive IDs
+ids = read_csv('../data/raw_data_gdrive_ids.csv') %>% arrange(site)
+
+# download files
+path = '../data/raw_data/'
+for (row in 1:nrow(ids)) { download_file(ids[row,], path) }
+cat('\n')
+
+# read files into list of loaded data frames
+site_names = ids$site
+raw_dfs = map(site_names, read_file, path)
+names(raw_dfs) = site_names
+```
+
 ```{r sample, message=FALSE}
 # load sample
-path <- "../data/raw_data/"
-sample <- read_delim(str_c(path, "coding_sample.csv"), delim = ",")
+sample = read_delim(str_c(path, "../coding_sample.csv"), delim = ",")
+```
+
+match column format
+
+```{r}
+# remove secondary pick column
+for (site in c('Lincoln Park Zoo', 'UCSD')) {
+  raw_dfs[[site]] <- select(raw_dfs[[site]], -secondary_pick)
+}
 ```
 
 ```{r}
-# get names files in the raw_data folder
-files = list.files(path, 'ManyPrimates_mp1_datasheet')
-
-# create list of loaded data frames
-raw_dfs <- lapply(files, function(file) try({
-  cat("Reading", file, "\n")
-  read_xlsx(str_c(path, file), sheet = 'Data', na = c('n/a'))
-  }))
-
-site_names = str_sub(files, 28, -6)
-names(raw_dfs) <- site_names
+# rows with missing pick/correct
+lapply(raw_dfs, filter, is.na(correct) | is.na(pick)) %>% 
+  map_df(bind_rows)
 ```
-
-# Things to check / fix
-
-## Lincoln Park Zoo
-
-```{r}
-raw_dfs[['LPZ MP1 data']] <- raw_dfs[['LPZ MP1 data']] %>%
-  select(-secondary_pick) %>%
-  rename(correct = "correct (1=correct)")
-```
-
-## Duke
-
-- Age information is missing
-- rows with comment "maxed out" --> did not responding count as 0 & trial wasn't repeated? (most of these rows do have correct=0 but there is also one with correct=1)
-- 1 row with missing values for pick & correct
-
-```{r}
-raw_dfs[['Duke']] %>% 
-  filter(is.na(correct) | is.na(pick))
-```
-
-## ECNU
-
-- Board size: 107
-- researcher info missing
-
-## FandM
-
-- demographic data only in the first row of each session
-- sessions numbered by overall testing session, not within subjects
-- extra 'food' column
-
-```{r}
-raw_dfs[['FandM']] <- raw_dfs[['FandM']] %>% 
-  select(-food)
-```
-
-## TBRI
-
-- species unclear (labelled as "baboon")
-- 4 rows with missing values for pick & correct with comment "animal did not attempt to make a selection during this trial" -- these trials were not repeated?
-
-```{r}
-raw_dfs[['TBRI']] %>% 
-  filter(is.na(correct) | is.na(pick))
-```
-
-## Vienna Zoo
-
-- 1 row with missing value for pick & row, with comment "ambiguous choice between 2 and 3, experimenter scored it as correct and rewarded the subject" -- ok
-
-```{r}
-raw_dfs[['Vienna_Zoo']] %>% 
-  filter(is.na(correct) | is.na(pick))
-```
-
 
 # Check for missing values
 
@@ -194,7 +173,6 @@ lapply(site_names, check_missing, raw_dfs) %>%
 - The manual checks for session, block, and trial list the minimum, maximum, and the number of unique values
   - If maximum trial <= 36, it _can_ mean that the trial number wasn't recorded continuously across sessions (but this can be okay, e.g., if subjects only did this many trials)
 
-
 ```{r, rows.print=30}
 lapply(site_names, check_values, raw_dfs)
 ```
@@ -207,6 +185,17 @@ lapply(site_names, check_values, raw_dfs)
 invisible(lapply(site_names, function(f) cat(check_site_specific(f, raw_dfs), sep='\n')))
 ```
 
+```{r}
+# list out all comments (exact duplicates removed)
+lapply(raw_dfs, function(df) filter(df, !is.na(comment)) %>% select(site, comment)) %>% 
+  map_df(bind_rows) %>% 
+  arrange(site, comment) %>% 
+  unite('site_comment', c('site', 'comment'), sep = ': ') %>% 
+  filter(!duplicated(.))
+```
+
+
+# vvv STILL TO BE ADAPTED
 
 # Merge Data Frames
 
@@ -223,7 +212,6 @@ merged_data = map_df(raw_dfs, bind_rows) %>%
 
 ---
 
-# vvv STILL TO BE ADAPTED
 
 > - Add underscores to species names
 > - Add life expectancy and normalize it
