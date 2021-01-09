@@ -28,7 +28,7 @@ download_file <- function(row, path) try({
 read_file <- function(site, path) try({
   file <- str_c('ManyPrimates_mp1_datasheet_', site, '.xlsx')
   cat("Reading", file, "\n")
-  read_xlsx(str_c(path, file), sheet = 'Data', na = c('NA', 'n/a'), guess_max = 1500) # add to list of NA values (if necessary)
+  read_xlsx(str_c(path, file), sheet = 'Data', na = c('NA', 'n/a'), guess_max = 1500)
 })
 ```
   
@@ -109,7 +109,7 @@ check_site_specific <- function(name, dfs) {
 ```
 
 
-# Load Data
+# Load data
 
 ```{r, message=FALSE}
 # the very 1st time, run this in console
@@ -118,11 +118,12 @@ drive_auth()
 ```
 
 ```{r}
+path = '../data/raw_data/'
+
 # get sheet with sites and datasheet Google Drive IDs
 ids = read_csv('../data/raw_data_gdrive_ids.csv') %>% arrange(site)
 
 # download files
-path = '../data/raw_data/'
 for (row in 1:nrow(ids)) { download_file(ids[row,], path) }
 cat('\n')
 
@@ -137,20 +138,45 @@ names(raw_dfs) = site_names
 sample = read_delim(str_c(path, "../coding_sample.csv"), delim = ",")
 ```
 
-match column format
+# Tweaks/fixes
 
 ```{r}
 # remove secondary pick column
 for (site in c('Lincoln Park Zoo', 'UCSD')) {
   raw_dfs[[site]] <- select(raw_dfs[[site]], -secondary_pick)
 }
+
+# remove ambiguous choice
+raw_dfs[['Strasbourg']] = raw_dfs[['Strasbourg']] %>% 
+  filter(pick != '3 / 2', trial <= 36) %>% 
+  mutate(pick = as.numeric(pick))
+
+# remove non-choice
+raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>% 
+  filter(pick != 0 & correct != 'n') %>% 
+  mutate(correct = as.numeric(correct))
+
+# recode correct = 'n' as 0
+raw_dfs[['TBRI']] = raw_dfs[['TBRI']] %>% 
+  mutate(
+    correct = as.numeric(ifelse(correct == 'n', 0, correct)),
+    species = 'olive baboon')
+
+# renumber sessions by subject & date grouping
+for (site in c('F and M', 'Strasbourg', 'Monkey Haven')) {
+  raw_dfs[[site]] = raw_dfs[[site]] %>%
+    group_by(subject_site) %>%
+    mutate(session = cumsum(!duplicated(date)))
+}
 ```
 
 ```{r}
-# rows with missing pick/correct
-lapply(raw_dfs, filter, is.na(correct) | is.na(pick)) %>% 
-  map_df(bind_rows)
+# remove rows with missing choice/correct
+raw_dfs = raw_dfs %>% 
+  lapply(filter, !is.na(correct) & !is.na(pick)) %>% 
+  lapply(mutate, age = as.numeric(age))
 ```
+
 
 # Check for missing values
 
@@ -165,6 +191,7 @@ lapply(site_names, check_missing, raw_dfs) %>%
   select_if(~ any(!is.na(.)))
 ```
 
+
 # Check values I
 
 (values that are shared across site (e.g., hiding location in [1, 2, 3]) or take on very few values within a site (e.g., cup distance))
@@ -177,6 +204,7 @@ lapply(site_names, check_missing, raw_dfs) %>%
 lapply(site_names, check_values, raw_dfs)
 ```
 
+
 # Check values II
 
 (values that can take on a lot of different values per site)
@@ -184,6 +212,7 @@ lapply(site_names, check_values, raw_dfs)
 ```{r}
 invisible(lapply(site_names, function(f) cat(check_site_specific(f, raw_dfs), sep='\n')))
 ```
+
 
 ```{r}
 # list out all comments (exact duplicates removed)
@@ -194,39 +223,73 @@ lapply(raw_dfs, function(df) filter(df, !is.na(comment)) %>% select(site, commen
   filter(!duplicated(.))
 ```
 
+# Check whether `correct` value matches whether `hiding_location` and `pick` are identical
 
-# vvv STILL TO BE ADAPTED
+```{r}
+map_df(raw_dfs, bind_rows) %>% 
+  filter(correct != as.numeric(hiding_location == pick)) %>% 
+  select(site, date, subject_site, session:correct)
+```
 
-# Merge Data Frames
 
-- remove legitimate missing values
+# Check session/block/trial numbering
+
+For below entries, the numbering may be off (e.g., not continuous or session assigned not by subject & date grouping)
+
+```{r}
+tmp = map_df(raw_dfs, bind_rows) %>% 
+  group_by(site, subject_site) %>% 
+  summarise(num_date = n_distinct(date), num_session = n_distinct(session), 
+            min_session = min(session), max_session = max(session), 
+            num_block = n_distinct(block),min_block = min(block), max_block = max(block), 
+            num_trial = n(), min_trial = min(trial), max_trial = max(trial))
+
+filter(tmp, num_date != num_session) %>% select(site:num_session)
+filter(tmp, min_session + min_block + min_trial != 3) %>% select(site, subject_site, min_session, min_block, min_trial)
+filter(tmp, num_session != max_session) %>% select(site, subject_site, num_session, max_session)
+filter(tmp, max_trial > max_block*3) %>% select(site, subject_site, max_trial, max_block)
+```
+
+```{r}
+# check that each subject has max. 3 rows of data per block
+# check that each subject has trials of the same condition per block
+# check that each subject has only 1 row of data for a given trial
+# if not, block/trial numbering may not be continuous
+map_df(raw_dfs, bind_rows) %>% 
+  group_by(site, subject_site, block) %>% 
+  summarise(n=n(), num_cond = n_distinct(condition)) %>% 
+  filter(n > 3 | num_cond > 1)
+
+map_df(raw_dfs, bind_rows) %>% count(site, subject_site, trial) %>% filter(n > 1)
+```
+
+
+# Merge data frames
+
 - separate multi-word species names with underscores instead of spaces
 - convert species name to lower case
 
 ```{r merge data files}
-merged_data = map_df(raw_dfs, bind_rows) %>%
+raw_data = map_df(raw_dfs, bind_rows) %>%
   mutate(species = str_replace_all(str_to_lower(species), " ", "_")) %>% 
-  filter(!is.na(pick)) %>% 
   select(-comment, -date)
 ```
 
----
+> TODO
+> - also merge with pilot data -- check which sites _not_ to merge with
+> - add life expectancy/normalize it & any other variables from modeling challenge?
 
-
-> - Add underscores to species names
-> - Add life expectancy and normalize it
 > - Make `correct` value match whether `hiding_location` and `pick` are identical
 
 ```{r add life expectancy, message=FALSE}
-species_data <- read_csv("../data/species_data.csv") %>% select(species, life_expectancy)
-raw_data <- raw_data %>%
-  left_join(species_data, by = "species") %>%
-  rename(delay = condition) %>%
-  mutate(norm_age = scale(age / life_expectancy),
-         correct = as.numeric(hiding_location == pick))
+# species_data <- read_csv("../data/species_data.csv") %>% select(species, life_expectancy)
+# raw_data <- raw_data %>%
+#   left_join(species_data, by = "species") %>%
+#   rename(delay = condition) %>%
+#   mutate(norm_age = scale(age / life_expectancy),
+#          correct = as.numeric(hiding_location == pick))
 ```
 
-## Quality Checks
 
 > Data structure
 
@@ -239,39 +302,20 @@ glimpse(raw_data)
 ```{r, results="asis"}
 raw_data %>%
   summarise(N = n_distinct(subject_site),
-            n_sites = n_distinct(site) - 1, # sweetwaters and sweetwaters_group2
-            n_species = n_distinct(species)) %>%
-  knitr::kable()
+            n_sites = n_distinct(site),
+            n_species = n_distinct(species))
 ```
 
 ```{r, results="asis"}
 raw_data %>%
   group_by(site, species) %>%
-  summarise(n = n_distinct(subject_site)) %>%
-  knitr::kable()
-```
-
-> Are there subjects with same trial number multiple times?
-
-```{r}
-raw_data %>%
-  group_by(site, species, subject_site, trial) %>%
-  summarise(n = n()) %>%
-  filter(n > 1)
-```
-
-> Are there any missing values?
-
-```{r}
-raw_data %>%
-  select_if(function(x) any(is.na(x))) %>%
-  summarise_all(funs(sum(is.na(.))))
+  summarise(n = n_distinct(subject_site))
 ```
 
 > Export Merged Data
 
 ```{r write data file}
-write_csv(raw_data, "../data/merged_data/01_manyprimates_pilot_merged_data_v2.csv")
+# write_csv(raw_data, "../data/merged_data/ManyPrimates_mp1_merged_data.csv")
 ```
 
 
