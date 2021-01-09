@@ -213,10 +213,10 @@ lapply(site_names, check_values, raw_dfs)
 invisible(lapply(site_names, function(f) cat(check_site_specific(f, raw_dfs), sep='\n')))
 ```
 
+list out all comments (exact duplicates removed)
 
 ```{r}
-# list out all comments (exact duplicates removed)
-lapply(raw_dfs, function(df) filter(df, !is.na(comment)) %>% select(site, comment)) %>% 
+lapply(raw_dfs, function(df) filter(df, !is.na(comment)) %>% ungroup %>% select(site, comment)) %>% 
   map_df(bind_rows) %>% 
   arrange(site, comment) %>% 
   unite('site_comment', c('site', 'comment'), sep = ': ') %>% 
@@ -276,10 +276,9 @@ raw_data = map_df(raw_dfs, bind_rows) %>%
 ```
 
 > TODO
+> 
 > - also merge with pilot data -- check which sites _not_ to merge with
 > - add life expectancy/normalize it & any other variables from modeling challenge?
-
-> - Make `correct` value match whether `hiding_location` and `pick` are identical
 
 ```{r add life expectancy, message=FALSE}
 # species_data <- read_csv("../data/species_data.csv") %>% select(species, life_expectancy)
