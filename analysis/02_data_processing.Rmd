@@ -266,8 +266,24 @@ map_df(raw_dfs, bind_rows) %>% count(site, subject_site, trial) %>% filter(n > 1
 
 # Merge data frames
 
-- separate multi-word species names with underscores instead of spaces
-- convert species name to lower case
+- pilot data
+  - remove data from sites that cannot be included
+- new data
+  - remove data from sites that cannot be included
+  - separate multi-word species names with underscores instead of spaces
+  - convert species name to lower case
+
+```{r, message=FALSE}
+pilot_data = read_csv('../data/pilot_data/01_manyprimates_pilot_merged_data.csv')
+
+pilot_data = pilot_data %>% 
+  filter(!site %in% c('sweetwaters', 'sweetwaters_group2')) %>% 
+  select(-X1, -life_expectancy, -norm_age)
+```
+```{r}
+# remove data from sites that cannot be included
+raw_dfs[['Tacugama']] = NULL
+```
 
 ```{r merge data files}
 raw_data = map_df(raw_dfs, bind_rows) %>%
@@ -275,38 +291,40 @@ raw_data = map_df(raw_dfs, bind_rows) %>%
   select(-comment, -date)
 ```
 
-> TODO
+```{r}
+merged_data = bind_rows(pilot_data, raw_data)
+```
+
+> TODO?
 > 
-> - also merge with pilot data -- check which sites _not_ to merge with
 > - add life expectancy/normalize it & any other variables from modeling challenge?
 
 ```{r add life expectancy, message=FALSE}
 # species_data <- read_csv("../data/species_data.csv") %>% select(species, life_expectancy)
-# raw_data <- raw_data %>%
+# merged_data <- merged_data %>%
 #   left_join(species_data, by = "species") %>%
 #   rename(delay = condition) %>%
 #   mutate(norm_age = scale(age / life_expectancy),
 #          correct = as.numeric(hiding_location == pick))
 ```
 
-
 > Data structure
 
 ```{r}
-glimpse(raw_data)
+glimpse(merged_data)
 ```
 
 > Sample sizes
 
 ```{r, results="asis"}
-raw_data %>%
+merged_data %>%
   summarise(N = n_distinct(subject_site),
             n_sites = n_distinct(site),
             n_species = n_distinct(species))
 ```
 
 ```{r, results="asis"}
-raw_data %>%
+merged_data %>%
   group_by(site, species) %>%
   summarise(n = n_distinct(subject_site))
 ```
@@ -314,7 +332,8 @@ raw_data %>%
 > Export Merged Data
 
 ```{r write data file}
-# write_csv(raw_data, "../data/merged_data/ManyPrimates_mp1_merged_data.csv")
+write_csv(merged_data, "../data/merged_data/ManyPrimates_mp1_merged_data.csv")
 ```
+
 
 
