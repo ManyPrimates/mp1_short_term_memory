@@ -62,7 +62,7 @@ get_min_max_ndistinct <- function(df, col, msg_df) {
 ```
 
 ```{r}
-check_values <- function(name, dfs) {
+check_values <- function(name, dfs, sample) {
   df = dfs[[name]]
   msg = tibble(check = '=== FILE', msg = name)
   msg = add_row(msg, check = '=== AUTOMATIC CHECKS', msg = '')
@@ -75,6 +75,7 @@ check_values <- function(name, dfs) {
     msg = add_row(msg, check = '-- unexpected columns', msg = paste(setdiff(names(df), names(sample)), collapse = ' '))
   }
 
+  msg = check_column_vals(df, sample, 'species', msg)
   msg = check_column_vals(df, sample, 'condition', msg)
   msg = check_column_vals(df, sample, 'task_experience', msg)
   msg = check_column_vals(df, sample, 'test_situation', msg)
@@ -100,11 +101,24 @@ check_site_specific <- function(name, dfs) {
   # writing this as a separate function because the entries can be long, which isn't easily displayed/checked in a table
   df = dfs[[name]]
   msg = c(str_c('\n=== FILE: ', name))
-  msg = c(msg, '\n--check species:', paste(unique(df$species), collapse = ' '))
   msg = c(msg, '\n--check subject:', paste(unique(df$subject_site), collapse = ' '))
   msg = c(msg, '\n--check age:', paste(sort(unique(df$age)), collapse = ' '))
 
   return(msg)
+}
+```
+
+```{r}
+format_species <- function(species) {
+  # convert to lower case
+  # separate multi-word species names with underscores instead of spaces/hyphens
+  # remove apostrophes
+  # replace special characters
+  species = str_to_lower(species)
+  species = str_replace_all(species, "'", "")
+  species = str_replace_all(species, " |-", "_")
+  species = str_replace_all(species, "ç", "c")
+  species
 }
 ```
 
@@ -123,9 +137,9 @@ path = '../data/raw_data/'
 # get sheet with sites and datasheet Google Drive IDs
 ids = read_csv('../data/raw_data_gdrive_ids.csv') %>% arrange(site)
 
-# download files
-for (row in 1:nrow(ids)) { download_file(ids[row,], path) }
-cat('\n')
+# # download files
+# for (row in 1:nrow(ids)) { download_file(ids[row,], path) }
+# cat('\n')
 
 # read files into list of loaded data frames
 site_names = ids$site
@@ -133,10 +147,22 @@ raw_dfs = map(site_names, read_file, path)
 names(raw_dfs) = site_names
 ```
 
-```{r sample, message=FALSE}
+```{r, message=FALSE}
 # load sample
 sample = read_delim(str_c(path, "../coding_sample.csv"), delim = ",")
+
+# # download species spreadsheet
+# drive_download(as_id('1RCLvbNWFph6bHvupetx7RDiAu5BWXK6PumgRo44ZoeM'), path = '../data/species.xlsx', overwrite = TRUE, verbose = FALSE)
+
+# read species spreadsheet
+species = read_excel('../data/species.xlsx', 'species', n_max = 45) %>% 
+  rename(species = Species_English) %>% 
+  select(species)
+
+# add to sample dataframe
+sample = bind_rows(sample, species)
 ```
+
 
 # Tweaks/fixes
 
@@ -146,10 +172,20 @@ for (site in c('Lincoln Park Zoo', 'UCSD')) {
   raw_dfs[[site]] <- select(raw_dfs[[site]], -secondary_pick)
 }
 
-# remove ambiguous choice
+# remove ambiguous choice & recode species
 raw_dfs[['Strasbourg']] = raw_dfs[['Strasbourg']] %>% 
   filter(pick != '3 / 2', trial <= 36) %>% 
-  mutate(pick = as.numeric(pick))
+  mutate(pick = as.numeric(pick),
+         species = recode(species, 
+                          'Cebus capucinus' = 'white_faced_capuchin',
+                          'Cebus apella' = 'brown_capuchin_monkey',
+                          'Chlorocebus sabaeus' = 'green_monkey',
+                          'Eulemur fulvus' = 'brown_lemur',
+                          'Eulemur macaco' = 'black_lemur',
+                          'Macaca tonkeana' = 'tonkean_macaque',
+                          'Macaca fascicularis' = 'long_tailed_macaque',
+                          'Macaca mulatta' = 'rhesus_macaque'
+                          ))
 
 # remove non-choice
 raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>% 
@@ -162,19 +198,43 @@ raw_dfs[['TBRI']] = raw_dfs[['TBRI']] %>%
     correct = as.numeric(ifelse(correct == 'n', 0, correct)),
     species = 'olive baboon')
 
-# renumber sessions by subject & date grouping
+# renumber sessions by subject & date grouping, recode species
 for (site in c('F and M', 'Strasbourg', 'Monkey Haven')) {
   raw_dfs[[site]] = raw_dfs[[site]] %>%
     group_by(subject_site) %>%
     mutate(session = cumsum(!duplicated(date)))
 }
+
+# recode species
+raw_dfs[['F and M']] = raw_dfs[['F and M']] %>% 
+  mutate(species = recode(species, 'capuchin' = 'brown_capuchin_monkey'))
+
+raw_dfs[['Lagos']] = raw_dfs[['Lagos']] %>% 
+  mutate(species = recode(species, 'emperaror tamarin' = 'emperor_tamarin'))
+
+raw_dfs[['Apenheul']] = raw_dfs[['Apenheul']] %>% 
+  mutate(species = recode(species, 'white-cheeked gibbon' = 'northern_white_cheeked_gibbon'))
+
+raw_dfs[['WKPRC']] = raw_dfs[['WKPRC']] %>% 
+  mutate(species = recode(species, 'gorilla' = 'western_gorilla'))
+
+raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>% 
+  mutate(species = recode(species, 'woolly monkey' = 'brown_woolly_monkey'))
+
+raw_dfs[['Monkey Haven']] = raw_dfs[['Monkey Haven']] %>% 
+  mutate(species = recode(species, 
+                          'Langur' = 'east_javan_langur',
+                          'Muller Gibbon' = 'muellers_gibbon',
+                          'Lar Gibbon' = 'white_handed_gibbon'))
 ```
 
 ```{r}
 # remove rows with missing choice/correct
+# format species names
 raw_dfs = raw_dfs %>% 
   lapply(filter, !is.na(correct) & !is.na(pick)) %>% 
-  lapply(mutate, age = as.numeric(age))
+  lapply(mutate, age = as.numeric(age)) %>% 
+  lapply(mutate, species = format_species(species))
 ```
 
 
@@ -200,8 +260,9 @@ lapply(site_names, check_missing, raw_dfs) %>%
 - The manual checks for session, block, and trial list the minimum, maximum, and the number of unique values
   - If maximum trial <= 36, it _can_ mean that the trial number wasn't recorded continuously across sessions (but this can be okay, e.g., if subjects only did this many trials)
 
+
 ```{r, rows.print=30}
-lapply(site_names, check_values, raw_dfs)
+lapply(site_names, check_values, raw_dfs, sample)
 ```
 
 
@@ -266,12 +327,7 @@ map_df(raw_dfs, bind_rows) %>% count(site, subject_site, trial) %>% filter(n > 1
 
 # Merge data frames
 
-- pilot data
-  - remove data from sites that cannot be included
-- new data
-  - remove data from sites that cannot be included
-  - separate multi-word species names with underscores instead of spaces
-  - convert species name to lower case
+remove data from sites that cannot be included
 
 ```{r, message=FALSE}
 pilot_data = read_csv('../data/pilot_data/01_manyprimates_pilot_merged_data.csv')
@@ -279,33 +335,13 @@ pilot_data = read_csv('../data/pilot_data/01_manyprimates_pilot_merged_data.csv'
 pilot_data = pilot_data %>% 
   filter(!site %in% c('sweetwaters', 'sweetwaters_group2')) %>% 
   select(-X1, -life_expectancy, -norm_age)
-```
-```{r}
-# remove data from sites that cannot be included
+
 raw_dfs[['Tacugama']] = NULL
-```
 
-```{r merge data files}
 raw_data = map_df(raw_dfs, bind_rows) %>%
-  mutate(species = str_replace_all(str_to_lower(species), " ", "_")) %>% 
   select(-comment, -date)
-```
 
-```{r}
 merged_data = bind_rows(pilot_data, raw_data)
-```
-
-> TODO?
-> 
-> - add life expectancy/normalize it & any other variables from modeling challenge?
-
-```{r add life expectancy, message=FALSE}
-# species_data <- read_csv("../data/species_data.csv") %>% select(species, life_expectancy)
-# merged_data <- merged_data %>%
-#   left_join(species_data, by = "species") %>%
-#   rename(delay = condition) %>%
-#   mutate(norm_age = scale(age / life_expectancy),
-#          correct = as.numeric(hiding_location == pick))
 ```
 
 > Data structure
