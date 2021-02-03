@@ -122,6 +122,21 @@ format_species <- function(species) {
 }
 ```
 
+```{r}
+fix_dtypes_and_names <- function(df) {
+  # remove rows with missing choice/correct
+  # make age numeric column
+  # fix species names
+  # fix site names
+  df %>% 
+    filter(!is.na(correct) & !is.na(pick)) %>% 
+    mutate(age = as.numeric(age),
+           species = format_species(species)) %>% 
+    rename(site_old = site) %>% 
+    left_join(sites, by = 'site_old') %>% 
+    select(site, everything(), -site_old)
+}
+```
 
 # Load data
 
@@ -135,6 +150,7 @@ drive_auth()
 path = '../data/raw_data/'
 
 # get sheet with sites and datasheet Google Drive IDs
+# note. removed Tacugama from the list, as data should not be included
 ids = read_csv('../data/raw_data_gdrive_ids.csv') %>% arrange(site)
 
 # # download files
@@ -142,9 +158,16 @@ ids = read_csv('../data/raw_data_gdrive_ids.csv') %>% arrange(site)
 # cat('\n')
 
 # read files into list of loaded data frames
-site_names = ids$site
-raw_dfs = map(site_names, read_file, path)
-names(raw_dfs) = site_names
+file_names = ids$site
+raw_dfs = map(file_names, read_file, path)
+names(raw_dfs) = file_names
+```
+
+```{r}
+# # download site names
+# drive_download(as_id('1VwsBLvgB2PUrq4YaPv6-Y3l-G67UgRceEpgxunylPSc'), path = '../data/site_names.csv', overwrite = TRUE, verbose = FALSE)
+
+sites = read_csv('../data/site_names.csv', col_names = c('site_old', 'site'))
 ```
 
 ```{r, message=FALSE}
@@ -229,12 +252,7 @@ raw_dfs[['Monkey Haven']] = raw_dfs[['Monkey Haven']] %>%
 ```
 
 ```{r}
-# remove rows with missing choice/correct
-# format species names
-raw_dfs = raw_dfs %>% 
-  lapply(filter, !is.na(correct) & !is.na(pick)) %>% 
-  lapply(mutate, age = as.numeric(age)) %>% 
-  lapply(mutate, species = format_species(species))
+raw_dfs = lapply(raw_dfs, fix_dtypes_and_names)
 ```
 
 
@@ -244,7 +262,7 @@ For each file, display total number of rows (for reference) and the number of mi
 (Only for files with missing values & only for columns in which any file has missing values. Ignore `comment` column.)
 
 ```{r}
-lapply(site_names, check_missing, raw_dfs) %>% 
+lapply(file_names, check_missing, raw_dfs) %>% 
   map_df(bind_rows) %>% 
   select(-comment) %>% 
   filter_at(vars(-file, -rows), any_vars(!is.na(.))) %>%
@@ -262,7 +280,7 @@ lapply(site_names, check_missing, raw_dfs) %>%
 
 
 ```{r, rows.print=30}
-lapply(site_names, check_values, raw_dfs, sample)
+lapply(file_names, check_values, raw_dfs, sample)
 ```
 
 
@@ -271,7 +289,7 @@ lapply(site_names, check_values, raw_dfs, sample)
 (values that can take on a lot of different values per site)
 
 ```{r}
-invisible(lapply(site_names, function(f) cat(check_site_specific(f, raw_dfs), sep='\n')))
+invisible(lapply(file_names, function(f) cat(check_site_specific(f, raw_dfs), sep='\n')))
 ```
 
 list out all comments (exact duplicates removed)
@@ -334,9 +352,8 @@ pilot_data = read_csv('../data/pilot_data/01_manyprimates_pilot_merged_data.csv'
 
 pilot_data = pilot_data %>% 
   filter(!site %in% c('sweetwaters', 'sweetwaters_group2')) %>% 
-  select(-X1, -life_expectancy, -norm_age)
-
-raw_dfs[['Tacugama']] = NULL
+  select(-X1, -life_expectancy, -norm_age) %>% 
+  fix_dtypes_and_names()
 
 raw_data = map_df(raw_dfs, bind_rows) %>%
   select(-comment, -date)
@@ -347,7 +364,7 @@ merged_data = bind_rows(pilot_data, raw_data)
 > Data structure
 
 ```{r}
-glimpse(merged_data)
+glimpse(merged_data, width=100)
 ```
 
 > Sample sizes
