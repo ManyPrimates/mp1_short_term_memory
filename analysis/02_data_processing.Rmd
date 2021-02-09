@@ -342,7 +342,6 @@ map_df(raw_dfs, bind_rows) %>%
 map_df(raw_dfs, bind_rows) %>% count(site, subject_site, trial) %>% filter(n > 1)
 ```
 
-
 # Merge data frames
 
 remove data from sites that cannot be included
@@ -360,6 +359,21 @@ raw_data = map_df(raw_dfs, bind_rows) %>%
 
 merged_data = bind_rows(pilot_data, raw_data)
 ```
+
+# Add age and longevity
+
+```{r}
+age = read_excel('../data/species.xlsx', 'species', n_max = 45) %>% 
+  rename(species = Species_English,
+         life_expectancy = `life expectancy`) %>%
+  mutate(life_expectancy = as.numeric(life_expectancy))%>%
+  select(species, life_expectancy)
+
+merged_data = merged_data %>% 
+  left_join(age)%>%
+  mutate(norm_age = as.numeric(scale(age / life_expectancy)))
+```
+
 
 > Data structure
 
@@ -381,6 +395,8 @@ merged_data %>%
   group_by(site, species) %>%
   summarise(n = n_distinct(subject_site))
 ```
+
+
 
 > Export Merged Data
 
