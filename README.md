@@ -1,4 +1,19 @@
-# ManyPrimates1 - Short Term Memory
+# ManyPrimates Pilot
 
-Project repository for the ManyPrimates1 study on short-term memory. For more information about ManyPrimates visit our website at: https://manyprimates.github.io/
+Project to assess primates' short-term memory abilities
 
+## Structure
+
+```
+.
+├── data
+│   ├── pilot_data    <-- cleaned data from pilot study
+│   ├── raw_data      <-- new data as submitted from each lab
+│   └── merged_data   <-- combined & cleaned data
+├── analysis          <-- numbered analysis scripts
+└── graphs            <-- figures/plots
+```
+
+## More information
+
+[https://manyprimates.github.io/mp1/](https://manyprimates.github.io/mp1/)
