@@ -1,4 +1,4 @@
-# ManyPrimates Pilot
+# ManyPrimates 1 - short-term memory
 
 Project to assess primates' short-term memory abilities
 
