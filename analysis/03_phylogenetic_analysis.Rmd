@@ -10,6 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+library(ape)
 library(tidyverse)
 library(readxl)
 library(googledrive)
@@ -53,3 +54,47 @@ phylo_data %>%
 
 ```
 
+Recode the "short/long/medium" condition variable into medium-centred numeric delays:
+
+```{r}
+phylo_data <- phylo_data %>%
+  mutate(delay = if_else(condition == "short", -0.15,
+                         if_else(condition == "medium", 0, 15)))
+```
+
+Tree-related processing:
+
+ * Read phylogenetic tree from file
+ * Check that all species labels in the data also occur as tip labels in the tree
+ * Prune any species not in the data from the tree
+ * Compute covariance matrix from tree under Brownian motion model
+
+```{r}
+tree <- read.tree("../phylo/mp_species.tree")
+data_species <- phylo_data$species_english %>% unique
+tree_species <- tree$tip.label
+stopifnot(length(setdiff(data_species, intersect(tree_species, data_species))) == 0)
+tree <- keep.tip(tree, data_species)
+A <- vcv.phylo(tree)
+```
+
+Run phylogenetic model:
+
+```{r}
+phylo_model <- brm(correct ~ delay + (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
+                   data=phylo_data, family=bernoulli(), data2 = list(A = A), chains = 4, iter=4000, cores=4,
+                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
+                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
+                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
+                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
+                           prior("lkj(1)", class = "cor")
+                )
+
+summary(phylo_model)
+```
