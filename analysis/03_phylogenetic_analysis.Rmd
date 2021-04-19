@@ -17,27 +17,25 @@ library(googledrive)
 library(brms)
 library(broom)
 library(ggthemes)
+library(tidybayes)
+library(ggridges)
+library(ggpubr)
 ```
 
 
 # NOTE
-Running the models takes a long time (12h on a HPC) - outputs are too large to put on GitHub (~7GB). If you want to access the model outputs directly, you have to download them via the following code. Files will be saved in `saves/`. 
+Running the models takes a long time (12h on a HPC) - outputs are too large to put on GitHub (~7GB). If you want to access the model outputs directly, you have to download them via the following link. Code below expects files to be in `saves/`.
+
+If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/e78a9963b58f4a9190d8/?dl=1` but you will have to put them manually into the `saves` directory.
 
 ```{r}
 # download zip file from Max Planck cloud storage
-library(RCurl)
-#
-f = CFILE("bfile.zip", mode="wb")
-curlPerform(url = "http://www.example.com/bfile.zip", writedata = f@ref)
-close(f)
-
-
+options(timeout=3600) # 1h, maybe you need more depending on your internet speed
 download.file("https://keeper.mpdl.mpg.de/f/e78a9963b58f4a9190d8/?dl=1", 
-              destfile = "../saves/saves.zip",
-              mode = 'wb' )
+              destfile = "../saves/saves.zip")
 
 # unpack zip file to get .rds files
-unzip("../saves/test.zip", exdir = "../saves")
+unzip("../saves/saves.zip", exdir = "../saves/")
 ```
 
 
@@ -161,7 +159,6 @@ base_model <- brm(correct ~ delay +
 # 
 # base_model %>% saveRDS("../saves/base_model.rds")
 
-
 base_model <- readRDS("../saves/base_model.rds")
 
 ```
@@ -194,13 +191,15 @@ diurnal_resting_model <- brm(correct ~ delay * resting_time_percent_activitybudg
                            prior("lkj(1)", class = "cor")
                 )
 
+#summary(diurnal_resting_model)
+
 #diurnal_resting_model %>% saveRDS("../saves/diurnal_resting_model.rds")
 
 #diurnal_resting_model <- add_criterion(diurnal_resting_model, "waic")
 
 diurnal_resting_model <- readRDS("../saves/diurnal_resting_model.rds")
 
-#summary(diurnal_resting_model)
+
 
 
 
@@ -238,11 +237,11 @@ color_vision_model <- brm(correct ~ delay * color_vision +
 
 #summary(color_vision_model)
 
-color_vision_model <- add_criterion(color_vision_model, "waic")
+#color_vision_model <- add_criterion(color_vision_model, "waic")
 
-color_vision_model %>% saveRDS("../saves/color_vision_model.rds")
+#color_vision_model %>% saveRDS("../saves/color_vision_model.rds")
 
-#color_vision_model <- readRDS("../saves/color_vision_model.rds")
+color_vision_model <- readRDS("../saves/color_vision_model.rds")
 ```
 
 ## Model 3: Home_range/body size ratio, time spent feeding and range of consumed food items
@@ -280,11 +279,11 @@ home_range_feeding_budget_diet_breath_model <- brm(correct ~ delay * home_range_
                 )
 #summary(home_range_feeding_budget_diet_breath_model)
 
-home_range_feeding_budget_diet_breath_model <- add_criterion(home_range_feeding_budget_diet_breath_model, "waic")
+#home_range_feeding_budget_diet_breath_model <- add_criterion(home_range_feeding_budget_diet_breath_model, "waic")
 
-home_range_feeding_budget_diet_breath_model %>% saveRDS("../saves/home_range_feeding_budget_diet_breath_model.rds")
+#home_range_feeding_budget_diet_breath_model %>% saveRDS("../saves/home_range_feeding_budget_diet_breath_model.rds")
 
-#home_range_feeding_budget_diet_breath_model <- readRDS("../saves/home_range_feeding_budget_diet_breath_model.rds")
+home_range_feeding_budget_diet_breath_model <- readRDS("../saves/home_range_feeding_budget_diet_breath_model.rds")
 
 ```
 
@@ -317,11 +316,11 @@ home_range_model <- brm(correct ~ delay * home_range +
                 )
 #summary(home_range_model)
 
-home_range_model <- add_criterion(home_range_model, "waic")
+#home_range_model <- add_criterion(home_range_model, "waic")
 
-home_range_model %>% saveRDS("../saves/home_range_model.rds")
+#home_range_model %>% saveRDS("../saves/home_range_model.rds")
 
-#home_range_model <- readRDS("../saves/home_range_model.rds")
+home_range_model <- readRDS("../saves/home_range_model.rds")
 
 ```
 
@@ -354,11 +353,11 @@ feeding_budget_model <- brm(correct ~ delay * feeding_budget +
                 )
 #summary(feeding_budget_model)
 
-feeding_budget_model <- add_criterion(feeding_budget_model, "waic")
+#feeding_budget_model <- add_criterion(feeding_budget_model, "waic")
 
-feeding_budget_model %>% saveRDS("../saves/feeding_budget_model.rds")
+#feeding_budget_model %>% saveRDS("../saves/feeding_budget_model.rds")
 
-#feeding_budget_model <- readRDS("../saves/feeding_budget_model.rds")
+feeding_budget_model <- readRDS("../saves/feeding_budget_model.rds")
 
 ```
 
@@ -392,11 +391,11 @@ vocal_repertoire_model <- brm(correct ~ delay * vocal_repertoire +
 
 #summary(vocal_repertoire_model)
 
-vocal_repertoire_model <- add_criterion(vocal_repertoire_model, "waic")
+#vocal_repertoire_model <- add_criterion(vocal_repertoire_model, "waic")
 
-vocal_repertoire_model %>% saveRDS("../saves/vocal_repertoire_model.rds")
+#vocal_repertoire_model %>% saveRDS("../saves/vocal_repertoire_model.rds")
 
-#vocal_repertoire_model <- readRDS("../saves/vocal_repertoire_model.rds")
+vocal_repertoire_model <- readRDS("../saves/vocal_repertoire_model.rds")
 
 ```
 
@@ -430,11 +429,11 @@ dietary_breadth_model <- brm(correct ~ delay * dietary_breadth +
 
 #summary(dietary_breadth_model)
 
-dietary_breadth_model <- add_criterion(dietary_breadth_model, "waic")
+#dietary_breadth_model <- add_criterion(dietary_breadth_model, "waic")
 
-dietary_breadth_model %>% saveRDS("../saves/dietary_breadth_model.rds")
+#dietary_breadth_model %>% saveRDS("../saves/dietary_breadth_model.rds")
 
-#dietary_breadth_model <- readRDS("../saves/dietary_breadth_model.rds")
+dietary_breadth_model <- readRDS("../saves/dietary_breadth_model.rds")
 
 ```
 
@@ -468,11 +467,11 @@ group_size_model <- brm(correct ~ delay * group_size +
 
 #summary(group_size_model)
 
-group_size_model <- add_criterion(group_size_model, "waic")
+#group_size_model <- add_criterion(group_size_model, "waic")
 
-group_size_model %>% saveRDS("../saves/group_size_model.rds")
+#group_size_model %>% saveRDS("../saves/group_size_model.rds")
 
-#group_size_model <- readRDS("../saves/group_size_model.rds")
+group_size_model <- readRDS("../saves/group_size_model.rds")
 
 ```
 
@@ -510,11 +509,11 @@ day_journey_group_size_model <- brm(correct ~ delay * day_journey_length * group
 
 #summary(day_journey_group_size_model)
 
-day_journey_group_size_model <- add_criterion(day_journey_group_size_model, "waic")
+#day_journey_group_size_model <- add_criterion(day_journey_group_size_model, "waic")
 
-day_journey_group_size_model %>% saveRDS("../saves/day_journey_group_size_model.rds")
+#day_journey_group_size_model %>% saveRDS("../saves/day_journey_group_size_model.rds")
 
-#day_journey_group_size_model <- readRDS("../saves/day_journey_group_size_model.rds")
+day_journey_group_size_model <- readRDS("../saves/day_journey_group_size_model.rds")
 
 ```
 
@@ -548,11 +547,11 @@ day_journey_model <- brm(correct ~ delay * day_journey_length +
 
 #summary(day_journey_model)
 
-day_journey_model <- add_criterion(day_journey_model, "waic")
+#day_journey_model <- add_criterion(day_journey_model, "waic")
 
-day_journey_model %>% saveRDS("../saves/day_journey_model.rds")
+#day_journey_model %>% saveRDS("../saves/day_journey_model.rds")
 
-#day_journey_model <- readRDS("../saves/day_journey_model.rds")
+day_journey_model <- readRDS("../saves/day_journey_model.rds")
 
 ```
 
@@ -590,11 +589,11 @@ frugivory_terrestriality_model <- brm(correct ~ delay * percent_frugivory * terr
 
 #summary(frugivory_terrestriality_model)
 
-frugivory_terrestriality_model <- add_criterion(frugivory_terrestriality_model, "waic")
+#frugivory_terrestriality_model <- add_criterion(frugivory_terrestriality_model, "waic")
 
-frugivory_terrestriality_model %>% saveRDS("../saves/frugivory_terrestriality_model.rds")
+#frugivory_terrestriality_model %>% saveRDS("../saves/frugivory_terrestriality_model.rds")
 
-#frugivory_terrestriality_model <- readRDS("../saves/frugivory_terrestriality_model.rds")
+frugivory_terrestriality_model <- readRDS("../saves/frugivory_terrestriality_model.rds")
 
 ```
 
@@ -628,11 +627,11 @@ frugivory_model <- brm(correct ~ delay * percent_frugivory +
 
 #summary(frugivory_model)
 
-frugivory_model <- add_criterion(frugivory_model, "waic")
+#frugivory_model <- add_criterion(frugivory_model, "waic")
 
-frugivory_model %>% saveRDS("../saves/frugivory_model.rds")
+#frugivory_model %>% saveRDS("../saves/frugivory_model.rds")
 
-#frugivory_model <- readRDS("../saves/frugivory_model.rds")
+frugivory_model <- readRDS("../saves/frugivory_model.rds")
 
 ```
 
@@ -666,11 +665,11 @@ terrestriality_model <- brm(correct ~ delay * terrestriality +
 
 #summary(terrestriality_model)
 
-terrestriality_model <- add_criterion(terrestriality_model, "waic")
+#terrestriality_model <- add_criterion(terrestriality_model, "waic")
 
-terrestriality_model %>% saveRDS("../saves/terrestriality_model.rds")
+#terrestriality_model %>% saveRDS("../saves/terrestriality_model.rds")
 
-#terrestriality_model <- readRDS("../saves/terrestriality_model.rds")
+terrestriality_model <- readRDS("../saves/terrestriality_model.rds")
 
 ```
 
@@ -711,11 +710,11 @@ diet_diversity_model <- brm(correct ~ delay * diet_diversity +
                 )
 #summary(diet_diversity_model)
 
-diet_diversity_model <- add_criterion(diet_diversity_model, "waic")
+#diet_diversity_model <- add_criterion(diet_diversity_model, "waic")
 
-diet_diversity_model %>% saveRDS("../saves/diet_diversity_model.rds")
+#diet_diversity_model %>% saveRDS("../saves/diet_diversity_model.rds")
 
-#diet_diversity_model <- readRDS("../saves/diet_diversity_model.rds")
+diet_diversity_model <- readRDS("../saves/diet_diversity_model.rds")
 ```
 
 # Model comparison
@@ -772,7 +771,7 @@ model_comparison <- comp %>%
   left_join(weights)%>%
   arrange(desc(weight))
 
-write_csv(model_comparison, "../saves/model_comparison.csv")
+#write_csv(model_comparison, "../saves/model_comparison.csv")
 
 model_comparison <- read_csv("../saves/model_comparison.csv")
 
@@ -852,15 +851,13 @@ model_comparison_exp <- comp_exp %>%
 
 #write_csv(model_comparison_exp, "../saves/model_comparison_exp.csv")
 
-#model_comparison_exp <- read_csv("../saves/model_comparison_exp.csv")
+model_comparison_exp <- read_csv("../saves/model_comparison_exp.csv")
 
 model_comparison_exp
 ```
-
 # Visualize winning models and baseline
 
-correlate species estimates from model with predictor
-
+## Posterior distributions for predictors
 ```{r}
 model_draws <-  bind_rows(
   dietary_breadth_model %>% posterior_samples(pars = c("b_delay","b_dietary_breadth","b_delay:dietary_breadth"))%>%
@@ -880,12 +877,40 @@ model_draws <-  bind_rows(
   pivot_longer(names_to = "estimate", values_to = "value", cols = c(delay,predictor,interaction ))
 
 model_draws %>%
-  ggplot(.,aes(x = value, fill = model))+
-  geom_vline(xintercept = 0, lty = 2, col = "grey")+
-  geom_density(alpha = .5)+
-  facet_grid(model~estimate)+
-  theme_minimal()+
-  scale_fill_colorblind()
+  ggplot(.,aes(x = value, y= model, fill = factor(stat(quantile))))+
+  geom_vline(xintercept = 0, lty = 2)+
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE,
+    quantiles = c(0.025, 0.975)
+  ) +
+  facet_grid(~estimate)+
+  theme_minimal() +
+  scale_fill_manual(
+   values = c("firebrick", "NA", "firebrick")
+  )+
+  guides(fill = F)
+```
+##Correlation between predictor and stm performance
+
+Performance estimate is the species intercept from the baseline model. Not sure if that makes sense.
+
+```{r}
+base_model%>% spread_draws(r_species_english[species_english,term])%>%
+  filter(term == "Intercept")%>%
+  rename(stm_estimate = "r_species_english")%>%
+  group_by(species_english)%>%
+  median_qi(stm_estimate)%>%
+  left_join(species_data%>%
+              select(species_english,superordinate_group,vocal_repertoire,dietary_breadth))%>%
+  pivot_longer(cols = c("vocal_repertoire","dietary_breadth"), names_to = "variable", values_to = "predictor")%>%
+  ggplot(aes(x = predictor, y = stm_estimate, col = superordinate_group))+
+  facet_grid(~variable)+
+  geom_point(alpha = .5)+
+  geom_smooth(method = lm, se = F, lty = 2, col = "grey")+
+  stat_cor(method = "pearson", inherit.aes = F, aes(x = predictor, y = stm_estimate), r.accuracy = 0.01, cor.coef.name = "r")+
+  theme_minimal()
+  
 ```
 
 
