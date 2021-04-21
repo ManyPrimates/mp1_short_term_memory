@@ -145,6 +145,10 @@ model_comparison <- comp %>%
   select(model,waic, se_waic)%>%
   left_join(weights)%>%
   arrange(desc(weight))
+
+model_comparison <- read_csv("../saves/confirmatory_model_comparison.csv")
+
+#write_csv(model_comparison, "../saves/confirmatory_model_comparison.csv")
 ```
 
 
@@ -170,6 +174,10 @@ model_draws %>%
    values = c("firebrick", "NA", "firebrick")
   )+
   guides(fill = F)
+```
+
+```{r}
+ggsave("../figures/confirmatory_analysis_main_effects.png")
 ```
 
 
