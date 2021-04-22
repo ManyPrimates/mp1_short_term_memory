@@ -20,6 +20,7 @@ library(ggthemes)
 library(tidybayes)
 library(ggridges)
 library(ggpubr)
+library(parallel)
 ```
 
 
@@ -129,38 +130,28 @@ A <- vcv.phylo(tree)
 
 # Phylogenetic models
 
+```{r}
+formulas <- list()
+priors <- list()
+```
+
 ## Model 0: Phylogenetic baseline model
 
 ```{r}
-base_model <- brm(correct ~ delay +
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data,
-                   family=bernoulli(),
-                   data2 = list(A = A),
-                   chains = 10,
-                   iter= 4000,
-                   cores= 10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-# summary(base_model)
-
-# base_model <- add_criterion(base_model, "waic")
-# 
-# base_model %>% saveRDS("../saves/base_model.rds")
-
-base_model <- readRDS("../saves/base_model.rds")
-
+model_name <- "base_model"
+formulas[[model_name]] <- correct ~ delay + (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(skew_normal(0, 1.5, 3), class=Intercept) +
+                        prior(skew_normal(-1.4, 2, 3), coef=delay) +
+                        prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+                        prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+                        prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
+                        prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+                        prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+                        prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
+                        prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+                        prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+                        prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
+                        prior("lkj(1)", class = "cor")
 ```
 
 ## Model 1: Diurnal resting-time
@@ -168,41 +159,11 @@ base_model <- readRDS("../saves/base_model.rds")
 Numeric predictor: `resting_time_percent_activitybudget`.
 
 ```{r}
-diurnal_resting_model <- brm(correct ~ delay * resting_time_percent_activitybudget +
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data,
-                   family=bernoulli(),
-                   data2 = list(A = A),
-                   chains = 10,
-                   iter= 4000,
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=resting_time_percent_activitybudget) + # test predictor
-                           prior(normal(0, 1), coef=`delay:resting_time_percent_activitybudget`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(diurnal_resting_model)
-
-#diurnal_resting_model %>% saveRDS("../saves/diurnal_resting_model.rds")
-
-#diurnal_resting_model <- add_criterion(diurnal_resting_model, "waic")
-
-diurnal_resting_model <- readRDS("../saves/diurnal_resting_model.rds")
-
-
-
-
-
+model_name <- "diurnal_resting_model"
+formulas[[model_name]] <- correct ~ delay * resting_time_percent_activitybudget +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=resting_time_percent_activitybudget) +
+                        prior(normal(0, 1), coef=`delay:resting_time_percent_activitybudget`)
 ```
 
 ## Model 2: Color vision
@@ -210,38 +171,13 @@ diurnal_resting_model <- readRDS("../saves/diurnal_resting_model.rds")
 Categorical predictor: `color_vision`. 
 
 ```{r}
-color_vision_model <- brm(correct ~ delay * color_vision + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 2), coef=color_visionpolymorphic) + # test predictor
-                           prior(normal(0, 2), coef=color_visiontrichromatic) + # test predictor
-                           prior(normal(0, 2), coef=`delay:color_visionpolymorphic`) + # test predictor
-                           prior(normal(0, 2), coef=`delay:color_visiontrichromatic`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(color_vision_model)
-
-#color_vision_model <- add_criterion(color_vision_model, "waic")
-
-#color_vision_model %>% saveRDS("../saves/color_vision_model.rds")
-
-color_vision_model <- readRDS("../saves/color_vision_model.rds")
+model_name <- "color_vision_model"
+formulas[[model_name]] <- correct ~ delay * color_vision +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 2), coef=color_visionpolymorphic) +
+                        prior(normal(0, 2), coef=color_visiontrichromatic) +
+                        prior(normal(0, 2), coef=`delay:color_visionpolymorphic`) +
+                        prior(normal(0, 2), coef=`delay:color_visiontrichromatic`)
 ```
 
 ## Model 3: Home_range/body size ratio, time spent feeding and range of consumed food items
@@ -249,42 +185,17 @@ color_vision_model <- readRDS("../saves/color_vision_model.rds")
 numerical predictors: `home_range_body_site_ratio`, `feeding_budget` and `dietary_breadth`.
 
 ```{r}
-home_range_feeding_budget_diet_breath_model <- brm(correct ~ delay * home_range_body_site_ratio + delay * feeding_budget * dietary_breadth +
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=home_range_body_site_ratio) + # test predictor
-                           prior(normal(0, 1), coef=`delay:dietary_breadth`) + # test predictor
-                           prior(normal(0, 1), coef=`delay:home_range_body_site_ratio`) + # test predictor
-                           prior(normal(0, 1), coef=`delay:feeding_budget`) + # test predictor
-                           prior(normal(0, 1), coef=`delay:feeding_budget:dietary_breadth`) + # test predictor
-                           prior(normal(0, 1), coef=dietary_breadth) + # test predictor
-                           prior(normal(0, 1), coef=feeding_budget) + # test predictor
-                           prior(normal(0, 1), coef=`feeding_budget:dietary_breadth`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-#summary(home_range_feeding_budget_diet_breath_model)
-
-#home_range_feeding_budget_diet_breath_model <- add_criterion(home_range_feeding_budget_diet_breath_model, "waic")
-
-#home_range_feeding_budget_diet_breath_model %>% saveRDS("../saves/home_range_feeding_budget_diet_breath_model.rds")
-
-home_range_feeding_budget_diet_breath_model <- readRDS("../saves/home_range_feeding_budget_diet_breath_model.rds")
-
+model_name <- "home_range_feeding_budget_diet_breath_model"
+formulas[[model_name]] <- correct ~ delay * home_range_body_site_ratio + delay * feeding_budget * dietary_breadth +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=home_range_body_site_ratio) +
+                        prior(normal(0, 1), coef=`delay:dietary_breadth`) +
+                        prior(normal(0, 1), coef=`delay:home_range_body_site_ratio`) +
+                        prior(normal(0, 1), coef=`delay:feeding_budget`) +
+                        prior(normal(0, 1), coef=`delay:feeding_budget:dietary_breadth`) +
+                        prior(normal(0, 1), coef=dietary_breadth) +
+                        prior(normal(0, 1), coef=feeding_budget) +
+                        prior(normal(0, 1), coef=`feeding_budget:dietary_breadth`)
 ```
 
 ## Model 3a: Home range
@@ -292,36 +203,11 @@ home_range_feeding_budget_diet_breath_model <- readRDS("../saves/home_range_feed
 numerical predictor: `home_range`.
 
 ```{r}
-home_range_model <- brm(correct ~ delay * home_range +
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=home_range) + # test predictor
-                           prior(normal(0, 1), coef=`delay:home_range`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-#summary(home_range_model)
-
-#home_range_model <- add_criterion(home_range_model, "waic")
-
-#home_range_model %>% saveRDS("../saves/home_range_model.rds")
-
-home_range_model <- readRDS("../saves/home_range_model.rds")
-
+model_name <- "home_range_model"
+formulas[[model_name]] <- correct ~ delay * home_range +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=home_range) +
+                        prior(normal(0, 1), coef=`delay:home_range`)
 ```
 
 ## Model 3b: Feeding budget
@@ -329,36 +215,11 @@ home_range_model <- readRDS("../saves/home_range_model.rds")
 numerical predictor: `feeding_budget`
 
 ```{r}
-feeding_budget_model <- brm(correct ~ delay * feeding_budget +
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=feeding_budget) + # test predictor
-                           prior(normal(0, 1), coef=`delay:feeding_budget`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-#summary(feeding_budget_model)
-
-#feeding_budget_model <- add_criterion(feeding_budget_model, "waic")
-
-#feeding_budget_model %>% saveRDS("../saves/feeding_budget_model.rds")
-
-feeding_budget_model <- readRDS("../saves/feeding_budget_model.rds")
-
+model_name <- "feeding_budget_model"
+formulas[[model_name]] <- correct ~ delay * feeding_budget +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=feeding_budget) +
+                        prior(normal(0, 1), coef=`delay:feeding_budget`)
 ```
 
 ## Model 4: Vocal repertoire
@@ -366,37 +227,11 @@ feeding_budget_model <- readRDS("../saves/feeding_budget_model.rds")
 Numeric predictor: `vocal_repertoire`. 
 
 ```{r}
-vocal_repertoire_model <- brm(correct ~ delay * vocal_repertoire + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=vocal_repertoire) + # test predictor
-                           prior(normal(0, 1), coef=`delay:vocal_repertoire`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(vocal_repertoire_model)
-
-#vocal_repertoire_model <- add_criterion(vocal_repertoire_model, "waic")
-
-#vocal_repertoire_model %>% saveRDS("../saves/vocal_repertoire_model.rds")
-
-vocal_repertoire_model <- readRDS("../saves/vocal_repertoire_model.rds")
-
+model_name <- "vocal_repertoire_model"
+formulas[[model_name]] <- correct ~ delay * vocal_repertoire +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=vocal_repertoire) +
+                        prior(normal(0, 1), coef=`delay:vocal_repertoire`)
 ```
 
 ## Model 5: Dietary breath
@@ -404,37 +239,11 @@ vocal_repertoire_model <- readRDS("../saves/vocal_repertoire_model.rds")
 Numeric predictor: `dietary_breadth`. 
 
 ```{r}
-dietary_breadth_model <- brm(correct ~ delay * dietary_breadth + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=dietary_breadth) + # test predictor
-                           prior(normal(0, 1), coef=`delay:dietary_breadth`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(dietary_breadth_model)
-
-#dietary_breadth_model <- add_criterion(dietary_breadth_model, "waic")
-
-#dietary_breadth_model %>% saveRDS("../saves/dietary_breadth_model.rds")
-
-dietary_breadth_model <- readRDS("../saves/dietary_breadth_model.rds")
-
+model_name <- "dietary_breadth_model"
+formulas[[model_name]] <- correct ~ delay * dietary_breadth +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=dietary_breadth) +
+                        prior(normal(0, 1), coef=`delay:dietary_breadth`)
 ```
 
 ## Model 6: Group size
@@ -442,37 +251,11 @@ dietary_breadth_model <- readRDS("../saves/dietary_breadth_model.rds")
 Numeric predictor: `group_size`. 
 
 ```{r}
-group_size_model <- brm(correct ~ delay * group_size + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=group_size) + # test predictor
-                           prior(normal(0, 1), coef=`delay:group_size`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(group_size_model)
-
-#group_size_model <- add_criterion(group_size_model, "waic")
-
-#group_size_model %>% saveRDS("../saves/group_size_model.rds")
-
-group_size_model <- readRDS("../saves/group_size_model.rds")
-
+model_name <- "group_size_model"
+formulas[[model_name]] <- correct ~ delay * group_size +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=group_size) +
+                        prior(normal(0, 1), coef=`delay:group_size`)
 ```
 
 ## Model 7: Day journey length and group size
@@ -480,41 +263,15 @@ group_size_model <- readRDS("../saves/group_size_model.rds")
 Numeric predictors: `day_journey_length` and `group_size`. 
 
 ```{r}
-day_journey_group_size_model <- brm(correct ~ delay * day_journey_length * group_size + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=group_size) + # test predictor
-                           prior(normal(0, 1), coef=day_journey_length) + # test predictor
-                           prior(normal(0, 1), coef=`day_journey_length:group_size`) + # test predictor
-                           prior(normal(0, 1), coef=`delay:group_size`) + # test predictor
-                           prior(normal(0, 1), coef=`delay:day_journey_length`) + # test predictor                     
-                           prior(normal(0, 1), coef=`delay:day_journey_length:group_size`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(day_journey_group_size_model)
-
-#day_journey_group_size_model <- add_criterion(day_journey_group_size_model, "waic")
-
-#day_journey_group_size_model %>% saveRDS("../saves/day_journey_group_size_model.rds")
-
-day_journey_group_size_model <- readRDS("../saves/day_journey_group_size_model.rds")
-
+model_name <- "day_journey_group_size_model"
+formulas[[model_name]] <- correct ~ delay * day_journey_length * group_size +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=group_size) +
+                        prior(normal(0, 1), coef=day_journey_length) +
+                        prior(normal(0, 1), coef=`day_journey_length:group_size`) +
+                        prior(normal(0, 1), coef=`delay:group_size`) +
+                        prior(normal(0, 1), coef=`delay:day_journey_length`) +
+                        prior(normal(0, 1), coef=`delay:day_journey_length:group_size`)
 ```
 
 ## Model 7a: Day journey length
@@ -522,37 +279,11 @@ day_journey_group_size_model <- readRDS("../saves/day_journey_group_size_model.r
 Numeric predictor: `day_journey_length`.
 
 ```{r}
-day_journey_model <- brm(correct ~ delay * day_journey_length + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=day_journey_length) + # test predictor
-                           prior(normal(0, 1), coef=`delay:day_journey_length`) + # test predictor            
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(day_journey_model)
-
-#day_journey_model <- add_criterion(day_journey_model, "waic")
-
-#day_journey_model %>% saveRDS("../saves/day_journey_model.rds")
-
-day_journey_model <- readRDS("../saves/day_journey_model.rds")
-
+model_name <- "day_journey_model"
+formulas[[model_name]] <- correct ~ delay * day_journey_length +
+                          (1 + delay + trial | subject_site + size + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=day_journey_length) +
+                        prior(normal(0, 1), coef=`delay:day_journey_length`)
 ```
 
 ## Model 8: Percent frugivory and terrestriality
@@ -560,41 +291,15 @@ day_journey_model <- readRDS("../saves/day_journey_model.rds")
 Numeric predictor: `percent_frugivory`. Categorical predictor and `terrestriality`. 
 
 ```{r}
-frugivory_terrestriality_model <- brm(correct ~ delay * percent_frugivory * terrestriality + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 2), coef=terrestrialityterrestrial) + # test predictor
-                           prior(normal(0, 1), coef=percent_frugivory) + # test predictor
-                           prior(normal(0, 2), coef=`percent_frugivory:terrestrialityterrestrial`) + # test predictor
-                           prior(normal(0, 2), coef=`delay:terrestrialityterrestrial`) + # test predictor
-                           prior(normal(0, 1), coef=`delay:percent_frugivory`) + # test predictor                     
-                           prior(normal(0, 2), coef=`delay:percent_frugivory:terrestrialityterrestrial`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(frugivory_terrestriality_model)
-
-#frugivory_terrestriality_model <- add_criterion(frugivory_terrestriality_model, "waic")
-
-#frugivory_terrestriality_model %>% saveRDS("../saves/frugivory_terrestriality_model.rds")
-
-frugivory_terrestriality_model <- readRDS("../saves/frugivory_terrestriality_model.rds")
-
+model_name <- "frugivory_terrestriality_model"
+formulas[[model_name]] <- correct ~ delay * percent_frugivory * terrestriality +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 2), coef=terrestrialityterrestrial) +
+                        prior(normal(0, 1), coef=percent_frugivory) +
+                        prior(normal(0, 2), coef=`percent_frugivory:terrestrialityterrestrial`) +
+                        prior(normal(0, 2), coef=`delay:terrestrialityterrestrial`) +
+                        prior(normal(0, 1), coef=`delay:percent_frugivory`) +
+                        prior(normal(0, 2), coef=`delay:percent_frugivory:terrestrialityterrestrial`)
 ```
 
 ## Model 8a: Percent frugivory
@@ -602,37 +307,11 @@ frugivory_terrestriality_model <- readRDS("../saves/frugivory_terrestriality_mod
 Numeric predictor: `percent_frugivory`.
 
 ```{r}
-frugivory_model <- brm(correct ~ delay * percent_frugivory + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 1), coef=percent_frugivory) + # test predictor
-                           prior(normal(0, 1), coef=`delay:percent_frugivory`) + # test predictor              
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(frugivory_model)
-
-#frugivory_model <- add_criterion(frugivory_model, "waic")
-
-#frugivory_model %>% saveRDS("../saves/frugivory_model.rds")
-
-frugivory_model <- readRDS("../saves/frugivory_model.rds")
-
+model_name <- "frugivory_model"
+formulas[[model_name]] <- correct ~ delay * percent_frugivory +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=percent_frugivory) +
+                        prior(normal(0, 1), coef=`delay:percent_frugivory`)
 ```
 
 ## Model 8b: Terrestriality
@@ -640,37 +319,11 @@ frugivory_model <- readRDS("../saves/frugivory_model.rds")
 Categorical predictor and `terrestriality`. 
 
 ```{r}
-terrestriality_model <- brm(correct ~ delay * terrestriality + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 2), coef=terrestrialityterrestrial) + # test predictor
-                           prior(normal(0, 2), coef=`delay:terrestrialityterrestrial`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-
-#summary(terrestriality_model)
-
-#terrestriality_model <- add_criterion(terrestriality_model, "waic")
-
-#terrestriality_model %>% saveRDS("../saves/terrestriality_model.rds")
-
-terrestriality_model <- readRDS("../saves/terrestriality_model.rds")
-
+model_name <- "terrestriality_model"
+formulas[[model_name]] <- correct ~ delay * terrestriality +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 2), coef=terrestrialityterrestrial) +
+                        prior(normal(0, 2), coef=`delay:terrestrialityterrestrial`)
 ```
 
 ## Model 9: Diet diversity
@@ -678,43 +331,70 @@ terrestriality_model <- readRDS("../saves/terrestriality_model.rds")
 Categorical predictor: `diet_diversity`. 
 
 ```{r}
-diet_diversity_model <- brm(correct ~ delay * diet_diversity + 
-                   (1 + delay + trial | subject_site + site + gr(species_english, cov=A)),
-                   data=phylo_data, 
-                   family=bernoulli(), 
-                   data2 = list(A = A), 
-                   chains = 10, 
-                   iter=4000, 
-                   cores=10,
-                   prior = prior(skew_normal(1.4, 2, 3), coef=delay) +
-                           prior(normal(0, 2), coef=diet_diversityfolivore_frugivore) + # test predictor
-                           prior(normal(0, 2), coef=diet_diversityfrugivore) + # test predictor
-                           prior(normal(0, 2), coef=diet_diversitygummivore) + # test predictor
-                           prior(normal(0, 2), coef=diet_diversityinsectivore_frugivore) + # test predictor
-                           prior(normal(0, 2), coef=diet_diversityomnivore) + # test predictor
-                           prior(normal(0, 2), coef=`delay:diet_diversityfolivore_frugivore`) + # test predictor
-                           prior(normal(0, 2), coef=`delay:diet_diversityfrugivore`) + # test predictor
-                           prior(normal(0, 2), coef=`delay:diet_diversitygummivore`) + # test predictor
-                           prior(normal(0, 2), coef=`delay:diet_diversityinsectivore_frugivore`) + # test predictor
-                           prior(normal(0, 2), coef=`delay:diet_diversityomnivore`) + # test predictor
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
-                           prior("lkj(1)", class = "cor")
-                )
-#summary(diet_diversity_model)
+model_name <- "diet_diversity_model"
+formulas[[model_name]] <- correct ~ delay * diet_diversity +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 2), coef=diet_diversityfolivore_frugivore) +
+                        prior(normal(0, 2), coef=diet_diversityfrugivore) +
+                        prior(normal(0, 2), coef=diet_diversitygummivore) +
+                        prior(normal(0, 2), coef=diet_diversityinsectivore_frugivore) +
+                        prior(normal(0, 2), coef=diet_diversityomnivore) +
+                        prior(normal(0, 2), coef=`delay:diet_diversityfolivore_frugivore`) +
+                        prior(normal(0, 2), coef=`delay:diet_diversityfrugivore`) +
+                        prior(normal(0, 2), coef=`delay:diet_diversitygummivore`) +
+                        prior(normal(0, 2), coef=`delay:diet_diversityinsectivore_frugivore`) +
+                        prior(normal(0, 2), coef=`delay:diet_diversityomnivore`)
+```
 
-#diet_diversity_model <- add_criterion(diet_diversity_model, "waic")
+## Run all models in parallel
+```{r}
 
-#diet_diversity_model %>% saveRDS("../saves/diet_diversity_model.rds")
+# First, add the common base prior to all other priors
+stopifnot(names(formulas)[1] == "base_model")
+for(i in 2:length(priors)) {
+  priors[[i]] <- priors[[1]] + priors[[i]]
+}
 
-diet_diversity_model <- readRDS("../saves/diet_diversity_model.rds")
+# Derive filenames for model results from model names
+filenames <- paste("../saves/phylo_", names(formulas), ".rds", sep="")
+
+# Define a function to run, process and save a model given a formula and prior
+run_model <- function(formula, prior, chains, iter, filename) {
+  print(c(filename, formula, prior))
+  model <- brm(formula, family=bernoulli(),
+               data=phylo_data,
+               data2 = list(A = A),
+               prior=prior,
+               chains=chains,
+               iter=iter,
+               cores=chains,
+            )
+  model <- add_criterion(model, "waic")
+  saveRDS(model, filename)
+}
+
+# Run and save all models in parallel
+chains <- 8
+iter <- 5000
+available_cores <- detectCores()
+simultaneous_models <- floor(available_cores / chains)
+
+## Turn warnings into errors so we won't get past the call to mcmapply if
+## something goes wrong
+options(warn=2)
+
+mcmapply(run_model, formulas, priors, chains, iter, filenames,
+         mc.cores=simultaneous_models)
+
+## Restore default warning behaviour
+options(warn=0)
+
+# Load all model result and assign them nice variables names ready for the
+# model comparison code below
+for(i in 1:length(formulas)) {
+  model <- readRDS(filenames[i])
+  assign(names(formulas)[i], model)
+}
 ```
 
 # Model comparison
