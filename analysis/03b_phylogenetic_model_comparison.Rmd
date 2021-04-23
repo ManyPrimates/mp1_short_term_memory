@@ -1,0 +1,263 @@
+---
+title: "ManyPrimates1_Phylogenetic_Model_Comparison"
+output:
+  html_notebook:
+    code_folding: hide
+    css: style.css
+    theme: paper
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+library(ape)
+library(tidyverse)
+library(readxl)
+library(googledrive)
+library(brms)
+library(broom)
+library(ggthemes)
+library(tidybayes)
+library(ggridges)
+library(ggpubr)
+library(parallel)
+```
+
+
+# NOTE
+Running the models takes a long time (12h on a HPC) - outputs are too large to put on GitHub (~7GB). If you want to access the model outputs directly, you have to download them via the following link. Code below expects files to be in `saves/`.
+
+If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/e78a9963b58f4a9190d8/?dl=1` but you will have to put them manually into the `saves` directory.
+
+```{r}
+# download zip file from Max Planck cloud storage
+options(timeout=3600) # 1h, maybe you need more depending on your internet speed
+download.file("https://keeper.mpdl.mpg.de/f/e78a9963b58f4a9190d8/?dl=1", 
+              destfile = "../saves/saves.zip")
+
+# unpack zip file to get .rds files
+unzip("../saves/saves.zip", exdir = "../saves/")
+```
+
+
+
+# Data processing
+
+## Read in STM data file
+
+```{r}
+data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")
+```
+
+# Model comparison
+
+## Read in models
+
+```{r}
+base_model  <- readRDS("../saves/phylo_base_model.rds")
+diurnal_resting_model <- readRDS("../saves/phylo_diurnal_resting_model.rds")
+color_vision_model <- readRDS("../saves/phylo_color_vision_model.rds")
+home_range_feeding_budget_diet_breath_model <- readRDS("../saves/phylo_home_range_feeding_budget_diet_breath_model.rds")
+vocal_repertoire_model <- readRDS("../saves/phylo_vocal_repertoire_model.rds")
+dietary_breadth_model <- readRDS("../saves/phylo_dietary_breadth_model.rds")
+group_size_model <- readRDS("../saves/phylo_group_size_model.rds")
+day_journey_group_size_model <- readRDS("../saves/phylo_day_journey_group_size_model.rds")
+frugivory_terrestriality_model <- readRDS("../saves/phylo_frugivory_terrestriality_model.rds")
+diet_diversity_model <- readRDS("../saves/phylo_diet_diversity_model.rds")
+home_range_model <- readRDS("../saves/phylo_home_range_model.rds")
+feeding_budget_model <- readRDS("../saves/phylo_feeding_budget_model.rds")
+day_journey_model <- readRDS("../saves/phylo_day_journey_model.rds")
+frugivory_model <- readRDS("../saves/phylo_frugivory_model.rds")
+terrestriality_model <- readRDS("../saves/phylo_terrestriality_model.rds")
+```
+
+## Models from modelling challenge
+
+```{r}
+# Compute WAIC scores and SE
+comp <-  loo_compare(
+  base_model, 
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+  criterion = "waic")%>%
+  as_tibble(rownames = "model")
+  
+# Compute WAIC weights
+weights <- model_weights(
+  base_model, 
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model, weights = "waic")%>%
+  as_tibble() %>% 
+  rename(weight = value) %>% 
+  mutate(model  = c("base_model", 
+                    "diurnal_resting_model",
+                    "color_vision_model",
+                    "home_range_feeding_budget_diet_breath_model",
+                    "vocal_repertoire_model",
+                    "dietary_breadth_model",
+                    "group_size_model",
+                    "day_journey_group_size_model",
+                    "frugivory_terrestriality_model",
+                    "diet_diversity_model"),
+         weight = weight %>% round(digits = 2)) %>% 
+  select(model, weight) 
+
+
+# Combine weights and scores
+model_comparison <- comp %>%
+  select(model,waic, se_waic)%>%
+  left_join(weights)%>%
+  arrange(desc(weight))
+
+#write_csv(model_comparison, "../saves/model_comparison.csv")
+
+model_comparison <- read_csv("../saves/model_comparison.csv")
+
+model_comparison
+```
+## Exploratory analysis:Include main effects models for all predictors
+
+Some models were submitted with interaction terms between variables. The additional models below were built so that each predictor that was submitted as part of an interaction is also included in a model with only that predictor. 
+
+```{r}
+# Compute WAIC scores and SE
+comp_exp <-  loo_compare(
+  base_model,    # models from modelling challnege
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+  
+  home_range_model,      # main effects models 
+  feeding_budget_model,
+  day_journey_model,
+  frugivory_model,
+  terrestriality_model,
+  
+  criterion = "waic")%>%
+  as_tibble(rownames = "model")
+  
+# Compute WAIC weights
+weights_exp <- model_weights(
+  base_model, 
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model, 
+  home_range_model,
+  feeding_budget_model,
+  day_journey_model,
+  frugivory_model,
+  terrestriality_model,
+  weights = "waic")%>%
+  as_tibble() %>% 
+  rename(weight = value) %>% 
+  mutate(model  = c("base_model", 
+                    "diurnal_resting_model",
+                    "color_vision_model",
+                    "home_range_feeding_budget_diet_breath_model",
+                    "vocal_repertoire_model",
+                    "dietary_breadth_model",
+                    "group_size_model",
+                    "day_journey_group_size_model",
+                    "frugivory_terrestriality_model",
+                    "diet_diversity_model",
+                    "home_range_model",
+                    "feeding_budget_model",
+                    "day_journey_model",
+                    "frugivory_model",
+                    "terrestriality_model"),
+         weight = weight %>% round(digits = 2)) %>% 
+  select(model, weight) 
+
+
+# Combine weights and scores
+model_comparison_exp <- comp_exp %>%
+  select(model,waic, se_waic)%>%
+  left_join(weights_exp)%>%
+  arrange(desc(weight))
+
+#write_csv(model_comparison_exp, "../saves/model_comparison_exp.csv")
+
+model_comparison_exp <- read_csv("../saves/model_comparison_exp.csv")
+
+model_comparison_exp
+```
+# Visualize winning models and baseline
+
+## Posterior distributions for predictors
+```{r}
+model_draws <-  bind_rows(
+  vocal_repertoire_model%>% posterior_samples(pars = c("b_delay","b_vocal_repertoire","b_delay:vocal_repertoire"))%>%
+    rename(delay = b_delay,
+           predictor = b_vocal_repertoire,
+           interaction = `b_delay:vocal_repertoire`)%>%
+    mutate(model= "vocal_repertoire"),
+  base_model%>% posterior_samples(pars = c("b_delay"))%>%
+    rename(delay = b_delay)%>%
+    mutate(model= "baseline")
+)%>%
+  pivot_longer(names_to = "estimate", values_to = "value", cols = c(delay,predictor,interaction ))
+
+model_draws %>%
+  ggplot(.,aes(x = value, y= model, fill = factor(stat(quantile))))+
+  geom_vline(xintercept = 0, lty = 2)+
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE,
+    quantiles = c(0.025, 0.975)
+  ) +
+  facet_grid(~estimate)+
+  theme_minimal() +
+  scale_fill_manual(
+   values = c("firebrick", "NA", "firebrick")
+  )+
+  guides(fill = F)
+```
+##Correlation between predictor and stm performance
+
+Performance estimate is the species intercept from the baseline model. Not sure if that makes sense.
+
+```{r}
+base_model%>% spread_draws(r_species_english[species_english,term])%>%
+  filter(term == "Intercept")%>%
+  rename(stm_estimate = "r_species_english")%>%
+  group_by(species_english)%>%
+  median_qi(stm_estimate)%>%
+  left_join(species_data%>%
+              select(species_english,superordinate_group,vocal_repertoire,dietary_breadth))%>%
+  pivot_longer(cols = c("vocal_repertoire","dietary_breadth"), names_to = "variable", values_to = "predictor")%>%
+  ggplot(aes(x = predictor, y = stm_estimate, col = superordinate_group))+
+  facet_grid(~variable)+
+  geom_point(alpha = .5)+
+  geom_smooth(method = lm, se = F, lty = 2, col = "grey")+
+  stat_cor(method = "pearson", inherit.aes = F, aes(x = predictor, y = stm_estimate), r.accuracy = 0.01, cor.coef.name = "r")+
+  theme_minimal()
+  
+```
+
+
