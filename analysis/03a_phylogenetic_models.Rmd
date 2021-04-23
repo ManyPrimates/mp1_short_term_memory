@@ -382,4 +382,36 @@ for(i in 1:length(formulas)) {
 }
 ```
 
+# Appendix: Confirmatory models
+
+Run a model that does not include the phylogenetic tree in the random effects. This will give us an additional angle on the phylogenetic signal in the data. 
+
+## Model 10: No phylogeny model
+
+```{r}
+no_phylogeny_model <- brm(correct ~ delay +
+                   (1 + delay + trial | subject_site + site + species_english),
+                   data=phylo_data,
+                   family=bernoulli(),
+                   chains = 8,
+                   iter= 5000,
+                   cores= 8,
+                   prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
+                           prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+                           prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
+                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
+                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+                           prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
+                           prior("lkj(1)", class = "cor")
+                )
+
+no_phylogeny_model <- add_criterion(no_phylogeny_model, c("loo", "waic"))
+
+no_phylogeny_model %>% saveRDS("../saves/phylo_no_phylogeny_model.rds")
+```
 

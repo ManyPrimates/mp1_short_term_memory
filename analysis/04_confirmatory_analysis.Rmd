@@ -119,12 +119,12 @@ full_model <- readRDS("../saves/conf_full_model.rds")
 # null_model <- add_criterion(null_model, c("loo", "waic"))
 # 
 # null_model %>% saveRDS("../saves/conf_null_model.rds")
-
-null_model <- readRDS("../saves/conf_null_model.rds")
+# 
+# null_model <- readRDS("../saves/conf_null_model.rds")
 
 ```
 
-## Model comparison
+# Model comparison
 
 ```{r}
 # comp_waic <-  loo_compare(
@@ -194,4 +194,92 @@ model_draws %>%
 ggsave("../figures/confirmatory_analysis_main_effects.png")
 ```
 
+# Exploratory analysis
 
+## Interaction model
+
+In the pilot, we included age in an interaction with delay. We add this model here as well as an exploratory analysis
+
+To access the model output, download it here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/`
+
+```{r}
+# int_model <- brm(correct ~ delay * norm_age +
+#                     task_experience + cup_distance + board_size + trial +
+#                    (1 + delay + trial | subject_site + site + species),
+#                    data=data,
+#                    family=bernoulli(),
+#                    chains = 4,
+#                    iter= 5000,
+#                    cores= 4,
+#                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
+#                            prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+#                            prior(normal(0, 1), class=b, coef=board_size) +
+#                            prior(normal(0, 1), class=b, coef=trial) +
+#                            prior(normal(0, 1), class=b, coef=cup_distance) +
+#                            prior(normal(0, 1), class=b, coef=norm_age) +
+#                            prior(normal(0, 1), class=b, coef=`delay:norm_age`) +
+#                            prior(normal(0, 2), class=b, coef=task_experienceyes) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
+#                            prior("lkj(1)", class = "cor")
+#                 )
+# 
+# summary(int_model)
+# 
+# int_model <- add_criterion(int_model, c("loo", "waic"))
+# 
+# int_model %>% saveRDS("../saves/conf_int_model.rds")
+# 
+# int_model <- readRDS("../saves/conf_int_model.rds")
+```
+
+## Exploratory model comparison
+
+```{r}
+# comp_waic_exp <-  loo_compare(
+#   full_model,
+#   null_model,
+#   int_model,
+#   criterion = c("waic"))%>%
+#   as_tibble(rownames = "model")
+# 
+# comp_loo_exp <-  loo_compare(
+#   full_model,
+#   null_model,
+#   int_model,
+#   criterion = c("loo"))%>%
+#   as_tibble(rownames = "model")
+# 
+# weights_waic_exp <- model_weights(full_model, null_model,int_model, weights = "waic")%>%
+#   as_tibble() %>%
+#   rename(waic_weight = value) %>%
+#   mutate(model  = c("full_model", "null_model","int_model"),
+#          waic_weight = waic_weight %>% round(digits = 4)) %>%
+#   select(model, waic_weight)
+# 
+# weights_loo_exp <- model_weights(full_model, null_model,int_model, weights = "loo")%>%
+#   as_tibble() %>%
+#   rename(loo_weight = value) %>%
+#   mutate(model  = c("full_model", "null_model","int_model"),
+#          loo_weight = loo_weight %>% round(digits = 4)) %>%
+#   select(model, loo_weight)
+# 
+# # Combine weights and scores
+# model_comparison_exp <- comp_waic_exp %>%select(model,waic, se_waic)%>%
+#   left_join(weights_waic_exp)%>%
+#   left_join(comp_loo_exp %>%select(model,looic, se_looic))%>%
+#   left_join(weights_loo_exp)%>%
+#   arrange(desc(waic_weight))
+# 
+# write_csv(model_comparison_exp, "../saves/confirmatory_model_comparison_exploratory.csv")
+
+model_comparison_exp <- read_csv("../saves/confirmatory_model_comparison_exploratory.csv")
+
+```
