@@ -78,7 +78,7 @@ full_model <- brm(correct ~ delay +
 
 summary(full_model)
 
-full_model <- add_criterion(full_model, "waic")
+full_model <- add_criterion(full_model, c("loo", "waic"))
 
 full_model %>% saveRDS("../saves/full_model.rds")
 
@@ -116,7 +116,7 @@ null_model <- brm(correct ~ task_experience + norm_age + cup_distance + board_si
 
 summary(null_model)
 
-null_model <- add_criterion(null_model, "waic")
+null_model <- add_criterion(null_model, c("loo", "waic"))
 
 null_model %>% saveRDS("../saves/null_model.rds")
 

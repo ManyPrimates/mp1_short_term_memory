@@ -354,7 +354,7 @@ run_model <- function(formula, prior, chains, iter, filename) {
                iter=iter,
                cores=chains,
             )
-  model <- add_criterion(model, "waic")
+  model <- add_criterion(model, c("loo", "waic"))
   saveRDS(model, filename)
 }
 

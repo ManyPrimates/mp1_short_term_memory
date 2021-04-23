@@ -23,24 +23,6 @@ library(ggpubr)
 library(parallel)
 ```
 
-
-# NOTE
-Running the models takes a long time (12h on a HPC) - outputs are too large to put on GitHub (~7GB). If you want to access the model outputs directly, you have to download them via the following link. Code below expects files to be in `saves/`.
-
-If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/e78a9963b58f4a9190d8/?dl=1` but you will have to put them manually into the `saves` directory.
-
-```{r}
-# download zip file from Max Planck cloud storage
-options(timeout=3600) # 1h, maybe you need more depending on your internet speed
-download.file("https://keeper.mpdl.mpg.de/f/e78a9963b58f4a9190d8/?dl=1", 
-              destfile = "../saves/saves.zip")
-
-# unpack zip file to get .rds files
-unzip("../saves/saves.zip", exdir = "../saves/")
-```
-
-
-
 # Data processing
 
 ## Read in STM data file
@@ -54,21 +36,21 @@ data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")
 ## Read in models
 
 ```{r}
-base_model  <- readRDS("../saves/phylo_base_model.rds")
-diurnal_resting_model <- readRDS("../saves/phylo_diurnal_resting_model.rds")
-color_vision_model <- readRDS("../saves/phylo_color_vision_model.rds")
-home_range_feeding_budget_diet_breath_model <- readRDS("../saves/phylo_home_range_feeding_budget_diet_breath_model.rds")
-vocal_repertoire_model <- readRDS("../saves/phylo_vocal_repertoire_model.rds")
-dietary_breadth_model <- readRDS("../saves/phylo_dietary_breadth_model.rds")
-group_size_model <- readRDS("../saves/phylo_group_size_model.rds")
-day_journey_group_size_model <- readRDS("../saves/phylo_day_journey_group_size_model.rds")
-frugivory_terrestriality_model <- readRDS("../saves/phylo_frugivory_terrestriality_model.rds")
-diet_diversity_model <- readRDS("../saves/phylo_diet_diversity_model.rds")
-home_range_model <- readRDS("../saves/phylo_home_range_model.rds")
-feeding_budget_model <- readRDS("../saves/phylo_feeding_budget_model.rds")
-day_journey_model <- readRDS("../saves/phylo_day_journey_model.rds")
-frugivory_model <- readRDS("../saves/phylo_frugivory_model.rds")
-terrestriality_model <- readRDS("../saves/phylo_terrestriality_model.rds")
+base_model  <- readRDS("../saves/phylo_base_model.rds") %>% add_criterion("loo")
+diurnal_resting_model <- readRDS("../saves/phylo_diurnal_resting_model.rds") %>% add_criterion("loo")
+color_vision_model <- readRDS("../saves/phylo_color_vision_model.rds") %>% add_criterion("loo")
+home_range_feeding_budget_diet_breath_model <- readRDS("../saves/phylo_home_range_feeding_budget_diet_breath_model.rds") %>% add_criterion("loo")
+vocal_repertoire_model <- readRDS("../saves/phylo_vocal_repertoire_model.rds")%>% add_criterion("loo")
+dietary_breadth_model <- readRDS("../saves/phylo_dietary_breadth_model.rds")%>% add_criterion("loo")
+group_size_model <- readRDS("../saves/phylo_group_size_model.rds")%>% add_criterion("loo")
+day_journey_group_size_model <- readRDS("../saves/phylo_day_journey_group_size_model.rds")%>% add_criterion("loo")
+frugivory_terrestriality_model <- readRDS("../saves/phylo_frugivory_terrestriality_model.rds")%>% add_criterion("loo")
+diet_diversity_model <- readRDS("../saves/phylo_diet_diversity_model.rds")%>% add_criterion("loo")
+home_range_model <- readRDS("../saves/phylo_home_range_model.rds")%>% add_criterion("loo")
+feeding_budget_model <- readRDS("../saves/phylo_feeding_budget_model.rds")%>% add_criterion("loo")
+day_journey_model <- readRDS("../saves/phylo_day_journey_model.rds")%>% add_criterion("loo")
+frugivory_model <- readRDS("../saves/phylo_frugivory_model.rds")%>% add_criterion("loo")
+terrestriality_model <- readRDS("../saves/phylo_terrestriality_model.rds")%>% add_criterion("loo")
 ```
 
 ## Models from modelling challenge
@@ -88,6 +70,21 @@ comp <-  loo_compare(
   diet_diversity_model,
   criterion = "waic")%>%
   as_tibble(rownames = "model")
+
+comp <-  loo_compare(
+  base_model, 
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+  criterion = "loo")%>%
+  as_tibble(rownames = "model")
+
   
 # Compute WAIC weights
 weights <- model_weights(
@@ -100,7 +97,7 @@ weights <- model_weights(
   group_size_model,
   day_journey_group_size_model,
   frugivory_terrestriality_model,
-  diet_diversity_model, weights = "waic")%>%
+  diet_diversity_model, weights = "loo")%>%
   as_tibble() %>% 
   rename(weight = value) %>% 
   mutate(model  = c("base_model", 
