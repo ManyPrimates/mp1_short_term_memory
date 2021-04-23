@@ -24,9 +24,9 @@ library(ggpubr)
 
 
 # NOTE
-Running the models takes a long time (12h on a HPC) - outputs are too large to put on GitHub (~7GB). If you want to access the model outputs directly, you have to download them via the following link. Code below expects files to be in `saves/`.
+Running the models takes quite some time (2h on a HPC) - outputs are too large to put on GitHub (~500MB). If you want to access the model outputs directly, you have to download them via the following link. Code below expects files to be in `saves/`.
 
-If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/e78a9963b58f4a9190d8/?dl=1` but you will have to put them manually into the `saves` directory.
+If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/` but you will have to put them manually into the `saves` directory.
 
 # Data processing
 
@@ -49,108 +49,122 @@ data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")%>%
 ## Full model
 
 ```{r}
-full_model <- brm(correct ~ delay +
-                    task_experience + norm_age + cup_distance + board_size + trial +
-                   (1 + delay + trial | subject_site + site + species),
-                   data=data,
-                   family=bernoulli(),
-                   chains = 4,
-                   iter= 5000,
-                   cores= 4,
-                   prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                           prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
-                           prior(normal(0, 1), class=b, coef=board_size) +
-                           prior(normal(0, 1), class=b, coef=trial) +
-                           prior(normal(0, 1), class=b, coef=cup_distance) +
-                           prior(normal(0, 1), class=b, coef=norm_age) +
-                           prior(normal(0, 2), class=b, coef=task_experienceyes) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
-                           prior("lkj(1)", class = "cor")
-                )
+# full_model <- brm(correct ~ delay +
+#                     task_experience + norm_age + cup_distance + board_size + trial +
+#                    (1 + delay + trial | subject_site + site + species),
+#                    data=data,
+#                    family=bernoulli(),
+#                    chains = 4,
+#                    iter= 5000,
+#                    cores= 4,
+#                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
+#                            prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+#                            prior(normal(0, 1), class=b, coef=board_size) +
+#                            prior(normal(0, 1), class=b, coef=trial) +
+#                            prior(normal(0, 1), class=b, coef=cup_distance) +
+#                            prior(normal(0, 1), class=b, coef=norm_age) +
+#                            prior(normal(0, 2), class=b, coef=task_experienceyes) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
+#                            prior("lkj(1)", class = "cor")
+#                 )
+# 
+# summary(full_model)
+# 
+# full_model <- add_criterion(full_model, c("loo", "waic"))
+# 
+# full_model %>% saveRDS("../saves/conf_full_model.rds")
 
-summary(full_model)
-
-full_model <- add_criterion(full_model, c("loo", "waic"))
-
-full_model %>% saveRDS("../saves/full_model.rds")
-
-#full_model <- readRDS("../saves/full_model.rds")
+full_model <- readRDS("../saves/conf_full_model.rds")
 ```
 
 ## Null model
 
 ```{r}
-null_model <- brm(correct ~ task_experience + norm_age + cup_distance + board_size + trial +
-                   (1 + delay + trial | subject_site + site + species),
-                   data=data,
-                   family=bernoulli(),
-                   chains = 4,
-                   iter= 5000,
-                   cores= 4,
-                   prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                           #prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
-                           prior(normal(0, 1), class=b, coef=board_size) +
-                           prior(normal(0, 1), class=b, coef=trial) +
-                           prior(normal(0, 1), class=b, coef=cup_distance) +
-                           prior(normal(0, 1), class=b, coef=norm_age) +
-                           prior(normal(0, 2), class=b, coef=task_experienceyes) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-                           prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
-                           prior("lkj(1)", class = "cor")
-                )
+# null_model <- brm(correct ~ task_experience + norm_age + cup_distance + board_size + trial +
+#                    (1 + delay + trial | subject_site + site + species),
+#                    data=data,
+#                    family=bernoulli(),
+#                    chains = 4,
+#                    iter= 5000,
+#                    cores= 4,
+#                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
+#                            #prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+#                            prior(normal(0, 1), class=b, coef=board_size) +
+#                            prior(normal(0, 1), class=b, coef=trial) +
+#                            prior(normal(0, 1), class=b, coef=cup_distance) +
+#                            prior(normal(0, 1), class=b, coef=norm_age) +
+#                            prior(normal(0, 2), class=b, coef=task_experienceyes) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
+#                            prior("lkj(1)", class = "cor")
+#                 )
+# 
+# summary(null_model)
+# 
+# null_model <- add_criterion(null_model, c("loo", "waic"))
+# 
+# null_model %>% saveRDS("../saves/conf_null_model.rds")
 
-summary(null_model)
-
-null_model <- add_criterion(null_model, c("loo", "waic"))
-
-null_model %>% saveRDS("../saves/null_model.rds")
-
-#null_model <- readRDS("../saves/null_model.rds")
+null_model <- readRDS("../saves/conf_null_model.rds")
 
 ```
 
 ## Model comparison
 
 ```{r}
-comp <-  loo_compare(
-  full_model, 
-  null_model,
-  criterion = "waic")%>%
-  as_tibble(rownames = "model")
-
-weights <- model_weights(full_model, null_model, weights = "waic")%>%
-  as_tibble() %>% 
-  rename(weight = value) %>% 
-  mutate(model  = c("full_model", "null_model"),
-         weight = weight %>% round(digits = 4)) %>% 
-  select(model, weight) 
-
-# Combine weights and scores
-model_comparison <- comp %>%
-  select(model,waic, se_waic)%>%
-  left_join(weights)%>%
-  arrange(desc(weight))
+# comp_waic <-  loo_compare(
+#   full_model, 
+#   null_model,
+#   criterion = c("waic"))%>%
+#   as_tibble(rownames = "model")
+# 
+# comp_loo <-  loo_compare(
+#   full_model, 
+#   null_model,
+#   criterion = c("loo"))%>%
+#   as_tibble(rownames = "model")
+# 
+# weights_waic <- model_weights(full_model, null_model, weights = "waic")%>%
+#   as_tibble() %>% 
+#   rename(waic_weight = value) %>% 
+#   mutate(model  = c("full_model", "null_model"),
+#          waic_weight = waic_weight %>% round(digits = 4)) %>% 
+#   select(model, waic_weight) 
+# 
+# weights_loo <- model_weights(full_model, null_model, weights = "loo")%>%
+#   as_tibble() %>% 
+#   rename(loo_weight = value) %>% 
+#   mutate(model  = c("full_model", "null_model"),
+#          loo_weight = loo_weight %>% round(digits = 4)) %>% 
+#   select(model, loo_weight) 
+# 
+# # Combine weights and scores
+# model_comparison <- comp_waic %>%select(model,waic, se_waic)%>%
+#   left_join(weights_waic)%>%
+#   left_join(comp_loo %>%select(model,looic, se_looic))%>%
+#   left_join(weights_loo)%>%
+#   arrange(desc(waic_weight))
+# 
+# write_csv(model_comparison, "../saves/confirmatory_model_comparison.csv")
 
 model_comparison <- read_csv("../saves/confirmatory_model_comparison.csv")
 
-#write_csv(model_comparison, "../saves/confirmatory_model_comparison.csv")
 ```
-
 
 # Visualize full model
 
