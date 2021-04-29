@@ -1,0 +1,69 @@
+---
+title: "ManyPrimates1_Phylogenetic_Signal"
+output:
+  html_notebook:
+    code_folding: hide
+    css: style.css
+    theme: paper
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+library(ape)
+library(brms)
+library(phytools)
+library(tidyverse)
+
+# Load species data
+species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>% 
+  filter(row_number() <= n()-3)%>% # remove last rows which contained a note
+  mutate_if(is.character, tolower)%>%
+  filter(species_english != "allens_swamp_monkey",
+         species_english != "hamlyns_monkey",
+         species_english != "sichuan_snub_nosed_monkey")%>%
+  mutate(feeding_budget = as.numeric(feeding_budget),
+         day_journey_length= as.numeric(day_journey_length),
+         home_range_body_site_ratio = home_range/body_size)%>%
+  mutate(resting_time_percent_activitybudget = scale(resting_time_percent_activitybudget, center = T, scale = T),
+         home_range_body_site_ratio = scale(home_range_body_site_ratio, center = T, scale = T),
+         home_range = scale(home_range, center = T, scale = T),
+         feeding_budget = scale(feeding_budget, center = T, scale = T),
+         dietary_breadth = scale(dietary_breadth, center = T, scale = T),
+         vocal_repertoire = scale(vocal_repertoire, center = T, scale = T),
+         group_size = scale(group_size, center = T, scale = T),
+         day_journey_length = scale(day_journey_length, center = T, scale = T),
+         percent_frugivory = scale(percent_frugivory, center = T, scale = T),
+         feeding_budget = scale(feeding_budget, center = T, scale =T))
+
+# Compute lambda and kappa values for the various predictor variables
+predictor_vars <- colnames(species_data)[5:17]
+signal <- data_frame(variable=c(), lambda=c(), kappa=c())
+for(pred in predictor_vars) {
+  if(typeof(species_data[[pred]]) != "double") {
+    print(c("Skipping", pred))
+    next
+  }
+  predictors <- setNames(species_data[[pred]], species_data$species_english)
+  # Calls to `phylosig` below complain "x has no names; assuming x is in the same order as tree$tip.label"
+  # This is clearly false (see `setNames` above).
+  # To reassure myself that this is some spurious error on `phytools`' part...
+  stopifnot(length(intersect(names(predictors), tree$tip.label)) == length(tree$tip.label))
+  L <- phylosig(tree, predictors, method="lambda")$lambda
+  K <- phylosig(tree, predictors, method="K")[1]
+  signal <- add_row(signal, variable=pred, lambda=L, kappa=K)
+}
+
+# Compute lambda and kappa values for base model predictions
+phylo_base_model <- readRDS("../saves/phylo_base_model.rds")
+new_data <- data_frame(species_english=species_data$species_english, delay=0, trial=0)
+predictors <- posterior_linpred(phylo_base_model, newdata=new_data, re_formula = ~(1 + delay + trial | gr(species_english, cov=A)))
+predictors <- setNames(colMeans(predictors), new_data$species_english)
+L <- phylosig(tree, predictors, method="lambda")
+K <- phylosig(tree, predictors, method="K")
+signal <- add_row(signal, variable="model", lambda=L, kappa=K)
+
+signal
+
+write_csv("phylogenetic_signal.csv")
+```
