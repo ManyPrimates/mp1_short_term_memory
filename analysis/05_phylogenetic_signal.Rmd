@@ -37,6 +37,22 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
          percent_frugivory = scale(percent_frugivory, center = T, scale = T),
          feeding_budget = scale(feeding_budget, center = T, scale =T))
 
+# Load phylo data
+data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")
+phylo_data <- data %>%
+  rename(species_english = species)%>% # create a common column to merge by
+  mutate(species_english = ifelse(species_english == "gorilla", "western_gorilla",species_english))%>%
+  filter(species_english != "allens_swamp_monkey",
+         species_english != "hamlyns_monkey",
+         species_english != "sichuan_snub_nosed_monkey")# re-code gorillas to match the species names
+
+# Load tree
+tree <- read.tree("../phylo/mp_species.tree")
+data_species <- phylo_data$species_english %>% unique
+tree_species <- tree$tip.label
+stopifnot(length(setdiff(data_species, intersect(tree_species, data_species))) == 0)
+tree <- keep.tip(tree, data_species)
+
 # Compute lambda and kappa values for the various predictor variables
 predictor_vars <- colnames(species_data)[5:17]
 signal <- data_frame(variable=c(), lambda=c(), kappa=c())
