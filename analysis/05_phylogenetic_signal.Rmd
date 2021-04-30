@@ -12,6 +12,7 @@ output:
 ```{r setup, include=FALSE}
 library(ape)
 library(brms)
+library(parallel)
 library(phytools)
 library(tidyverse)
 library(readxl)
@@ -73,14 +74,19 @@ for(pred in predictor_vars) {
 
 # Compute lambda and kappa values for base model predictions
 phylo_base_model <- readRDS("../saves/phylo_base_model.rds")
-new_data <- data_frame(species_english=species_data$species_english, delay=0, trial=0)
-predictors <- posterior_linpred(phylo_base_model, newdata=new_data, re_formula = ~(1 + delay + trial | gr(species_english, cov=A)))
-predictors <- setNames(colMeans(predictors), new_data$species_english)
-L <- phylosig(tree, predictors, method="lambda")
-K <- phylosig(tree, predictors, method="K")
-signal <- add_row(signal, variable="model", lambda=L, kappa=K)
-
-signal
+new_data <- data_frame(species_english=species_data$species_english,
+                       site=1:nrow(species_data), subject_site=1:nrow(species_data),
+                       delay=0, trial=0)
+for(i in 1:10000) {
+  predictors <- posterior_linpred(phylo_base_model, newdata=new_data,
+                                  allow_new_levels=TRUE,
+                                  sample_new_levels="old_levels",
+                                  cores=detectCores())
+  predictors <- setNames(colMeans(predictors), new_data$species_english)
+  L <- L + phylosig(tree, predictors, method="lambda")$lambda
+  K <- K + phylosig(tree, predictors, method="K")[1]
+  signal <- add_row(signal, variable="model", lambda=L, kappa=K)
+}
 
 write_csv("phylogenetic_signal.csv")
 ```
