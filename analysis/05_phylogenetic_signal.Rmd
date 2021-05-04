@@ -77,16 +77,26 @@ phylo_base_model <- readRDS("../saves/phylo_base_model.rds")
 new_data <- data_frame(species_english=species_data$species_english,
                        site=1:nrow(species_data), subject_site=1:nrow(species_data),
                        delay=0, trial=0)
-for(i in 1:10000) {
+
+do_prediction <- function(ignore) {
   predictors <- posterior_linpred(phylo_base_model, newdata=new_data,
                                   allow_new_levels=TRUE,
-                                  sample_new_levels="old_levels",
-                                  cores=detectCores())
+                                  sample_new_levels="old_levels")
   predictors <- setNames(colMeans(predictors), new_data$species_english)
-  L <- L + phylosig(tree, predictors, method="lambda")$lambda
-  K <- K + phylosig(tree, predictors, method="K")[1]
+  return(predictors)
+}
+
+options(warn=2)
+results <- mclapply(1:10000, do_prediction, mc.cores=detectCores())
+options(warn=0)
+
+for(i in 1:length(results)) {
+  print(results[[i]])
+  L <- phylosig(tree, results[[i]], method="lambda")$lambda
+  K <- phylosig(tree, results[[i]], method="K")[1]
   signal <- add_row(signal, variable="model", lambda=L, kappa=K)
 }
 
-write_csv("phylogenetic_signal.csv")
+write_csv(signal, "phylogenetic_signal.csv")
+
 ```
