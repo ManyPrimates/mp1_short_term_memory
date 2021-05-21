@@ -433,6 +433,57 @@ model_draws %>%
   guides(fill = F)
 ```
 
+## Model predictions for delay
+
+```{r}
+
+model_pred <-  vocal_repertoire_model%>% 
+  posterior_samples(pars = c("b_Intercept","b_delay","b_vocal_repertoire","b_delay:vocal_repertoire"), subset = runif(1000, 0, 20000))%>%
+  rownames_to_column(var = "iteration")%>%
+  rename(intercept = b_Intercept, 
+         delay = b_delay,
+         predictor = b_vocal_repertoire,
+         interaction = `b_delay:vocal_repertoire`)%>%
+  expand_grid(vocal_reperoire = seq(-1,1, length=100))%>%
+  mutate(short_delay = intercept + delay * -1 + predictor * vocal_reperoire + interaction * vocal_reperoire * -1,
+         medium_delay = intercept + delay * 0 + predictor * vocal_reperoire + interaction * vocal_reperoire * 0,
+         long_delay = intercept + delay * 1 + predictor * vocal_reperoire + interaction * vocal_reperoire * 1)%>%
+  select(-delay, -intercept, - interaction, -predictor)%>%
+  pivot_longer(cols = c(short_delay, medium_delay, long_delay), names_to = "delay", values_to = "prediction")%>%
+  mutate(prediction = plogis(prediction),
+         delay = factor(delay, levels = c("short_delay", "medium_delay", "long_delay")))
+
+model_pred_map <- fixef(vocal_repertoire_model)%>%
+  as_tibble(rownames = "var")%>%
+  select(var, Estimate)%>%
+  pivot_wider(names_from = var, values_from = Estimate)%>%
+  rename(intercept = Intercept, 
+         delay = delay,
+         predictor = vocal_repertoire,
+         interaction = `delay:vocal_repertoire`)%>%
+  expand_grid(vocal_reperoire = seq(-1,1, length=100))%>%
+  mutate(short_delay = intercept + delay * -1 + predictor * vocal_reperoire + interaction * vocal_reperoire * -1,
+         medium_delay = intercept + delay * 0 + predictor * vocal_reperoire + interaction * vocal_reperoire * 0,
+         long_delay = intercept + delay * 1 + predictor * vocal_reperoire + interaction * vocal_reperoire * 1)%>%
+  select(-delay, -intercept, - interaction, -predictor)%>%
+  pivot_longer(cols = c(short_delay, medium_delay, long_delay), names_to = "delay", values_to = "prediction")%>%
+  mutate(prediction = plogis(prediction),
+         delay = factor(delay, levels = c("short_delay", "medium_delay", "long_delay")))
+  
+
+
+ggplot(model_pred,aes(x = vocal_reperoire, y= prediction, col = delay))+
+  geom_hline(yintercept = 1/3, lty = 2, alpha = .5)+
+  geom_line(alpha = 0.025, aes(group = interaction(delay,iteration)))+
+  geom_line(data = model_pred_map, aes(x = vocal_reperoire, y= prediction, col = delay),size = 1.5)+
+  facet_grid(~delay)+
+  ylim(0,1)+
+  theme_minimal() +
+  guides(col = F)+
+  scale_color_colorblind()
+```
+
+
 ## Correlation between predictor and stm performance
 
 Performance estimate is the species intercept from the baseline model. Not sure if that makes sense.
