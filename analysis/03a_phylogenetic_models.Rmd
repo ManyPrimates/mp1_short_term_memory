@@ -37,17 +37,28 @@ Species `hamlyns_monkey` and `allens_swamp_monkey` will be excluded from the phy
 
 ```{r}
 # drive_download("https://docs.google.com/spreadsheets/d/1RCLvbNWFph6bHvupetx7RDiAu5BWXK6PumgRo44ZoeM/edit#gid=1909432990",
-#                path = "../data/species_predictors.xlsx", 
+#                path = "../data/species_predictors.xlsx",
 #                overwrite = T)
 
-species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>% 
-  filter(row_number() <= n()-3)%>% # remove last rows which contained a note
+species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
+  mutate_all(., .funs = tolower)%>%
+  select(-contains("Source"), -contains("Comments"))%>%# remove columns with sources and comments
+  rename(vocal_repertoire = `vocal_repertoire (# vocalization types)`,
+         body_size = `body_size (kg)`)%>%
   mutate_if(is.character, tolower)%>%
   filter(species_english != "allens_swamp_monkey",
          species_english != "hamlyns_monkey",
          species_english != "sichuan_snub_nosed_monkey")%>%
-  mutate(feeding_budget = as.numeric(feeding_budget),
+  mutate(vocal_repertoire = as.numeric(vocal_repertoire),
+         group_size = as.numeric(group_size),
+         home_range = as.numeric(home_range),
+         feeding_budget = as.numeric(feeding_budget),
          day_journey_length= as.numeric(day_journey_length),
+         resting_time_percent_activitybudget= as.numeric(resting_time_percent_activitybudget),
+         feeding_budget= as.numeric(feeding_budget),
+         dietary_breadth= as.numeric(dietary_breadth),
+         percent_frugivory= as.numeric(percent_frugivory),
+         body_size= as.numeric(body_size),
          home_range_body_site_ratio = home_range/body_size)%>%
   mutate(resting_time_percent_activitybudget = scale(resting_time_percent_activitybudget, center = T, scale = T),
          home_range_body_site_ratio = scale(home_range_body_site_ratio, center = T, scale = T),
@@ -73,14 +84,12 @@ phylo_data <- data %>%
   filter(species_english != "allens_swamp_monkey",
          species_english != "hamlyns_monkey",
          species_english != "sichuan_snub_nosed_monkey")%>%# re-code gorillas to match the species names 
-  left_join(species_data)
+  left_join(species_data%>%select(-species_latin,-family))
 
 # check if there are remaining NAs for the predictors
 
 phylo_data %>%
-  filter_at(vars(22:33),any_vars(is.na(.)))
-
-
+  filter_at(vars(21:32),any_vars(is.na(.)))
 ```
 
 ## Recode the "short/long/medium" condition variable into medium-centred numeric delays:
