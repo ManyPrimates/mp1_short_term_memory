@@ -196,6 +196,7 @@ for (site in c('Lincoln Park Zoo', 'UCSD')) {
 }
 
 # remove ambiguous choice & recode species
+# fix board size for clement_str for last trial
 raw_dfs[['Strasbourg']] = raw_dfs[['Strasbourg']] %>% 
   filter(pick != '3 / 2', trial <= 36) %>% 
   mutate(pick = as.numeric(pick),
@@ -208,7 +209,8 @@ raw_dfs[['Strasbourg']] = raw_dfs[['Strasbourg']] %>%
                           'Macaca tonkeana' = 'tonkean_macaque',
                           'Macaca fascicularis' = 'long_tailed_macaque',
                           'Macaca mulatta' = 'rhesus_macaque'
-                          ))
+                          ),
+         board_size = ifelse(subject_site == "clement_str",60 ,board_size))
 
 # remove non-choice
 raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>% 
@@ -216,10 +218,16 @@ raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>%
   mutate(correct = as.numeric(correct))
 
 # recode correct = 'n' as 0
+# recode task experience for 28806_TBR to be the first entry for all the data
 raw_dfs[['TBRI']] = raw_dfs[['TBRI']] %>% 
   mutate(
     correct = as.numeric(ifelse(correct == 'n', 0, correct)),
-    species = 'olive baboon')
+    species = 'olive baboon',
+    task_experience = ifelse(subject_site == "28806_TBR","no",task_experience))
+
+# recode task experience for Beans_Duk to be the first entry for all the data
+raw_dfs[['Duke']] = raw_dfs[['Duke']] %>% 
+  mutate(task_experience = ifelse(subject_site == "Beans_Duk","no",task_experience))
 
 # renumber sessions by subject & date grouping, recode species
 for (site in c('F and M', 'Strasbourg', 'Monkey Haven')) {
@@ -338,6 +346,32 @@ map_df(raw_dfs, bind_rows) %>%
   group_by(site, subject_site, block) %>% 
   summarise(n=n(), num_cond = n_distinct(condition)) %>% 
   filter(n > 3 | num_cond > 1)
+
+map_df(raw_dfs, bind_rows) %>% count(site, subject_site, trial) %>% filter(n > 1)
+```
+
+# Check task experience
+
+```{r}
+# check that each subject has only one level of task experience
+
+map_df(raw_dfs, bind_rows) %>% 
+  group_by(site, subject_site) %>% 
+  summarise(exp = length(unique(task_experience)))%>% 
+  filter(exp > 1)
+
+map_df(raw_dfs, bind_rows) %>% count(site, subject_site, trial) %>% filter(n > 1)
+```
+
+# Check board size
+
+```{r}
+# check that each subject has only one level of task experience
+
+map_df(raw_dfs, bind_rows) %>% 
+  group_by(site, subject_site) %>% 
+  summarise(bsize = length(unique(board_size)))%>% 
+  filter(bsize > 1)
 
 map_df(raw_dfs, bind_rows) %>% count(site, subject_site, trial) %>% filter(n > 1)
 ```
