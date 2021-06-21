@@ -24,9 +24,18 @@ library(ggpubr)
 
 
 # NOTE
-Running the models takes quite some time (2h on a HPC) - outputs are too large to put on GitHub (~500MB). If you want to access the model outputs directly, you have to download them via the following link. Code below expects files to be in `saves/`.
+Running the models takes quite some time (2h on a HPC) - outputs are too large to put on GitHub (~600MB). If you want to access the model outputs directly, you have to download them via the following link. Code that follows expects files to be in `saves/`.
 
-If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/` but you will have to put them manually into the `saves` directory.
+```{r}
+# download zip file from Max Planck cloud storage
+options(timeout=3600) # 1h, maybe you need more depending on your internet speed
+download.file("https://keeper.mpdl.mpg.de/f/3de147c222e946e78f59/?dl=1", 
+              destfile = "../saves/saves.zip")
+# unpack zip file to get .rds files
+unzip("../saves/saves.zip", exdir = "../saves/")
+```
+
+If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/3de147c222e946e78f59/?dl=1` but you will have to put them manually into the `saves` directory.
 
 # Data processing
 
@@ -119,8 +128,8 @@ full_model <- readRDS("../saves/conf_full_model.rds")
 # null_model <- add_criterion(null_model, c("loo", "waic"))
 # 
 # null_model %>% saveRDS("../saves/conf_null_model.rds")
-# 
-# null_model <- readRDS("../saves/conf_null_model.rds")
+
+null_model <- readRDS("../saves/conf_null_model.rds")
 
 ```
 
@@ -128,30 +137,30 @@ full_model <- readRDS("../saves/conf_full_model.rds")
 
 ```{r}
 # comp_waic <-  loo_compare(
-#   full_model, 
+#   full_model,
 #   null_model,
 #   criterion = c("waic"))%>%
 #   as_tibble(rownames = "model")
 # 
 # comp_loo <-  loo_compare(
-#   full_model, 
+#   full_model,
 #   null_model,
 #   criterion = c("loo"))%>%
 #   as_tibble(rownames = "model")
 # 
 # weights_waic <- model_weights(full_model, null_model, weights = "waic")%>%
-#   as_tibble() %>% 
-#   rename(waic_weight = value) %>% 
+#   as_tibble() %>%
+#   rename(waic_weight = value) %>%
 #   mutate(model  = c("full_model", "null_model"),
-#          waic_weight = waic_weight %>% round(digits = 4)) %>% 
-#   select(model, waic_weight) 
+#          waic_weight = waic_weight %>% round(digits = 4)) %>%
+#   select(model, waic_weight)
 # 
 # weights_loo <- model_weights(full_model, null_model, weights = "loo")%>%
-#   as_tibble() %>% 
-#   rename(loo_weight = value) %>% 
+#   as_tibble() %>%
+#   rename(loo_weight = value) %>%
 #   mutate(model  = c("full_model", "null_model"),
-#          loo_weight = loo_weight %>% round(digits = 4)) %>% 
-#   select(model, loo_weight) 
+#          loo_weight = loo_weight %>% round(digits = 4)) %>%
+#   select(model, loo_weight)
 # 
 # # Combine weights and scores
 # model_comparison <- comp_waic %>%select(model,waic, se_waic)%>%
@@ -236,8 +245,8 @@ To access the model output, download it here: `https://keeper.mpdl.mpg.de/d/d258
 # int_model <- add_criterion(int_model, c("loo", "waic"))
 # 
 # int_model %>% saveRDS("../saves/conf_int_model.rds")
-# 
-# int_model <- readRDS("../saves/conf_int_model.rds")
+
+int_model <- readRDS("../saves/conf_int_model.rds")
 ```
 
 ## Exploratory model comparison
