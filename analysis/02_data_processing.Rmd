@@ -222,7 +222,7 @@ raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>%
 raw_dfs[['TBRI']] = raw_dfs[['TBRI']] %>% 
   mutate(
     correct = as.numeric(ifelse(correct == 'n', 0, correct)),
-    species = 'olive baboon',
+    species = 'olive_baboon',
     task_experience = ifelse(subject_site == "28806_TBR","no",task_experience))
 
 # recode task experience for Beans_Duk to be the first entry for all the data
@@ -248,6 +248,9 @@ raw_dfs[['Apenheul']] = raw_dfs[['Apenheul']] %>%
 
 raw_dfs[['WKPRC']] = raw_dfs[['WKPRC']] %>% 
   mutate(species = recode(species, 'gorilla' = 'western_gorilla'))
+
+raw_dfs[['WKPRC']] = raw_dfs[['WKPRC']] %>% 
+  mutate(species = recode(species, 'orangutan' = 'sumatran_orangutan'))
 
 raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>% 
   mutate(species = recode(species, 'woolly monkey' = 'brown_woolly_monkey'))
