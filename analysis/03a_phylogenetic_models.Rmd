@@ -272,7 +272,7 @@ Numeric predictor: `day_journey_length`.
 ```{r}
 model_name <- "day_journey_model"
 formulas[[model_name]] <- correct ~ delay * day_journey_length +
-                          (1 + delay + trial | subject_site + size + gr(species_english, cov=A))
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=day_journey_length) +
                         prior(normal(0, 1), coef=`delay:day_journey_length`)
 ```
