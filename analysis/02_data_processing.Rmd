@@ -249,9 +249,6 @@ raw_dfs[['Apenheul']] = raw_dfs[['Apenheul']] %>%
 raw_dfs[['WKPRC']] = raw_dfs[['WKPRC']] %>% 
   mutate(species = recode(species, 'gorilla' = 'western_gorilla'))
 
-raw_dfs[['WKPRC']] = raw_dfs[['WKPRC']] %>% 
-  mutate(species = recode(species, 'orangutan' = 'sumatran_orangutan'))
-
 raw_dfs[['Paris Zoo']] = raw_dfs[['Paris Zoo']] %>% 
   mutate(species = recode(species, 'woolly monkey' = 'brown_woolly_monkey'))
 
@@ -387,7 +384,9 @@ remove data from sites that cannot be included
 pilot_data = read_csv('../data/pilot_data/01_manyprimates_pilot_merged_data.csv')
 
 pilot_data = pilot_data %>% 
-  filter(!site %in% c('sweetwaters', 'sweetwaters_group2')) %>% 
+  filter(!site %in% c('sweetwaters', 'sweetwaters_group2')) %>%
+  mutate(species = recode(species, 'orangutan' = 'sumatran_orangutan'),
+         species = recode(species, 'squirrel_monkey' = 'common_squirrel_monkey'))%>%
   select(-X1, -life_expectancy, -norm_age) %>% 
   fix_dtypes_and_names()
 
