@@ -49,6 +49,7 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
   filter(species_english != "allens_swamp_monkey",
          species_english != "hamlyns_monkey") %>%
   mutate(vocal_repertoire = as.numeric(vocal_repertoire),
+         life_expectancy = as.numeric(life_expectancy),
          group_size = as.numeric(group_size),
          home_range = as.numeric(home_range),
          feeding_budget = as.numeric(feeding_budget),
