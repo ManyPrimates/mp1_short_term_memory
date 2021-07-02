@@ -174,12 +174,9 @@ sites = read_csv('../data/site_names.csv', col_names = c('site_old', 'site'))
 # load sample
 sample = read_delim(str_c(path, "../coding_sample.csv"), delim = ",")
 
-# # download species spreadsheet
-# drive_download(as_id('1RCLvbNWFph6bHvupetx7RDiAu5BWXK6PumgRo44ZoeM'), path = '../data/species.xlsx', overwrite = TRUE, verbose = FALSE)
-
 # read species spreadsheet
-species = read_excel('../data/species.xlsx', 'species', n_max = 45) %>% 
-  rename(species = Species_English) %>% 
+species = read_excel('../data/species_predictors.xlsx', sheet = 1) %>% 
+  rename(species = species_english) %>% 
   select(species)
 
 # add to sample dataframe
@@ -386,7 +383,8 @@ pilot_data = read_csv('../data/pilot_data/01_manyprimates_pilot_merged_data.csv'
 pilot_data = pilot_data %>% 
   filter(!site %in% c('sweetwaters', 'sweetwaters_group2')) %>%
   mutate(species = recode(species, 'orangutan' = 'sumatran_orangutan'),
-         species = recode(species, 'squirrel_monkey' = 'common_squirrel_monkey'))%>%
+         species = recode(species, 'squirrel_monkey' = 'common_squirrel_monkey'),
+         species = recode(species, 'gorilla' = 'western_gorilla'))%>%
   select(-X1, -life_expectancy, -norm_age) %>% 
   fix_dtypes_and_names()
 
@@ -399,10 +397,8 @@ merged_data = bind_rows(pilot_data, raw_data)
 # Add age and longevity
 
 ```{r}
-age = read_excel('../data/species.xlsx', 'species', n_max = 45) %>% 
-  rename(species = Species_English,
-         life_expectancy = `life expectancy`) %>%
-  mutate(life_expectancy = as.numeric(life_expectancy))%>%
+age = read_excel('../data/species_predictors.xlsx', sheet = 1) %>% 
+  rename(species = species_english)%>%
   select(species, life_expectancy)
 
 merged_data = merged_data %>% 
