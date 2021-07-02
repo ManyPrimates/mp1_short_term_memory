@@ -26,8 +26,7 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
          body_size = `body_size (kg)`)%>%
   mutate_if(is.character, tolower)%>%
   filter(species_english != "allens_swamp_monkey",
-         species_english != "hamlyns_monkey",
-         species_english != "sichuan_snub_nosed_monkey")%>%
+         species_english != "hamlyns_monkey") %>%
   mutate(vocal_repertoire = as.numeric(vocal_repertoire),
          group_size = as.numeric(group_size),
          home_range = as.numeric(home_range),
@@ -56,8 +55,7 @@ phylo_data <- data %>%
   rename(species_english = species)%>% # create a common column to merge by
   mutate(species_english = ifelse(species_english == "gorilla", "western_gorilla",species_english))%>%
   filter(species_english != "allens_swamp_monkey",
-         species_english != "hamlyns_monkey",
-         species_english != "sichuan_snub_nosed_monkey")# re-code gorillas to match the species names
+         species_english != "hamlyns_monkey")
 
 # Load tree
 tree <- read.tree("../phylo/mp_species.tree")
