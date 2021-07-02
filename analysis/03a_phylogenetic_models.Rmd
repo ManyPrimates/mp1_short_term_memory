@@ -33,7 +33,7 @@ data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")
 
 ## Read in species level predictors and scale them.
 
-Species `hamlyns_monkey` and `allens_swamp_monkey` will be excluded from the phylogenetic analysis because we did not find data for some predictors for those species. For `sichuan_snub_nosed_monkey` we actually don't have any experimental data.
+Species `hamlyns_monkey` and `allens_swamp_monkey` will be excluded from the phylogenetic analysis because we did not find data for some predictors for those species.
 
 ```{r}
 # drive_download("https://docs.google.com/spreadsheets/d/1RCLvbNWFph6bHvupetx7RDiAu5BWXK6PumgRo44ZoeM/edit#gid=1909432990",
@@ -47,8 +47,7 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
          body_size = `body_size (kg)`)%>%
   mutate_if(is.character, tolower)%>%
   filter(species_english != "allens_swamp_monkey",
-         species_english != "hamlyns_monkey",
-         species_english != "sichuan_snub_nosed_monkey")%>%
+         species_english != "hamlyns_monkey") %>%
   mutate(vocal_repertoire = as.numeric(vocal_repertoire),
          group_size = as.numeric(group_size),
          home_range = as.numeric(home_range),
@@ -80,10 +79,8 @@ Exclude species for which we have no species-level data. `Gorilla` has to be re-
 ```{r}
 phylo_data <- data %>%
   rename(species_english = species)%>% # create a common column to merge by
-  mutate(species_english = ifelse(species_english == "gorilla", "western_gorilla",species_english))%>%
   filter(species_english != "allens_swamp_monkey",
-         species_english != "hamlyns_monkey",
-         species_english != "sichuan_snub_nosed_monkey")%>%# re-code gorillas to match the species names 
+         species_english != "hamlyns_monkey") %>%
   left_join(species_data%>%select(-species_latin,-family))
 
 # check if there are remaining NAs for the predictors

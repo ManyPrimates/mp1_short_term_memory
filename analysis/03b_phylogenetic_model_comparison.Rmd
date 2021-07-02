@@ -56,8 +56,7 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
          body_size = `body_size (kg)`)%>%
   mutate_if(is.character, tolower)%>%
   filter(species_english != "allens_swamp_monkey",
-         species_english != "hamlyns_monkey",
-         species_english != "sichuan_snub_nosed_monkey")%>%
+         species_english != "hamlyns_monkey") %>%
   mutate(vocal_repertoire = as.numeric(vocal_repertoire),
          group_size = as.numeric(group_size),
          home_range = as.numeric(home_range),
