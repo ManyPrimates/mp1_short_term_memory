@@ -69,52 +69,52 @@ stopifnot(length(setdiff(species_species, tree_species)) == 0)
 stopifnot(length(setdiff(data_species, tree_species)) == 0)
 tree <- keep.tip(tree, data_species)
 
-# # Compute lambda and kappa values for the various predictor variables
-# predictor_vars <- colnames(species_data)[5:17]
-# signal <- data_frame(variable=c(), lambda=c(), kappa=c())
-# for(pred in predictor_vars) {
-#   if(typeof(species_data[[pred]]) != "double") {
-#     print(c("Skipping", pred))
-#     next
-#   }
-#   predictors <- setNames(species_data[[pred]], species_data$species_english)
-#   # Calls to `phylosig` below complain "x has no names; assuming x is in the same order as tree$tip.label"
-#   # This is clearly false (see `setNames` above).
-#   # To reassure myself that this is some spurious error on `phytools`' part...
-#   stopifnot(length(intersect(names(predictors), tree$tip.label)) == length(tree$tip.label))
-#   L <- phylosig(tree, predictors, method="lambda")$lambda
-#   K <- phylosig(tree, predictors, method="K")[1]
-#   signal <- add_row(signal, variable=pred, lambda=L, kappa=K)
-# }
-# 
-# # Compute lambda and kappa values for base model predictions
-# phylo_base_model <- readRDS("../saves/phylo_base_model.rds")
-# new_data <- data_frame(species_english=species_data$species_english,
-#                        site=1:nrow(species_data), subject_site=1:nrow(species_data),
-#                        delay=0, trial=0)
-# 
-# do_prediction <- function(ignore) {
-#   predictors <- posterior_linpred(phylo_base_model, newdata=new_data,
-#                                   allow_new_levels=TRUE,
-#                                   sample_new_levels="old_levels")
-#   predictors <- setNames(colMeans(predictors), new_data$species_english)
-#   return(predictors)
-# }
-# 
-# options(warn=2)
-# results <- mclapply(1:10000, do_prediction, mc.cores=detectCores())
-# options(warn=0)
-# 
-# for(i in 1:length(results)) {
-#   print(results[[i]])
-#   L <- phylosig(tree, results[[i]], method="lambda")$lambda
-#   K <- phylosig(tree, results[[i]], method="K")[1]
-#   signal <- add_row(signal, variable="model", lambda=L, kappa=K)
-# }
-# 
-# write_csv(signal, "../saves/phylogenetic_signal.csv")
+# Compute lambda and kappa values for the various predictor variables
+predictor_vars <- colnames(species_data)[5:17]
+signal <- data_frame(variable=c(), lambda=c(), kappa=c())
+for(pred in predictor_vars) {
+  if(typeof(species_data[[pred]]) != "double") {
+    print(c("Skipping", pred))
+    next
+  }
+  predictors <- setNames(as.vector(species_data[[pred]]), species_data$species_english)
+  # Calls to `phylosig` below complain "x has no names; assuming x is in the same order as tree$tip.label"
+  # This is clearly false (see `setNames` above).
+  # To reassure myself that this is some spurious error on `phytools`' part...
+  stopifnot(length(intersect(names(predictors), tree$tip.label)) == length(tree$tip.label))
+  L <- phylosig(tree, predictors, method="lambda")$lambda
+  K <- phylosig(tree, predictors, method="K")[1]
+  signal <- add_row(signal, variable=pred, lambda=L, kappa=K)
+}
 
-signal <- read_csv("./saves/phylogenetic_signal.csv")
+# Compute lambda and kappa values for base model predictions
+phylo_base_model <- readRDS("../saves/phylo_base_model.rds")
+
+do_prediction <- function(delay) {
+  new_data <- data_frame(species_english=species_data$species_english,
+                         site=1:nrow(species_data), subject_site=1:nrow(species_data),
+                         delay=delay, trial=0)
+  predictors <- posterior_linpred(phylo_base_model, newdata=new_data,
+                                  allow_new_levels=TRUE,
+                                  sample_new_levels="old_levels")
+  predictors <- setNames(as.vector(colMeans(predictors)), new_data$species_english)
+  return(predictors)
+}
+
+options(warn=2)
+results <- mclapply(rep(c(-1, 0, 1), 3333), do_prediction, mc.cores=detectCores())
+options(warn=0)
+
+for(i in 1:length(results)) {
+  print(results[[i]])
+  L <- phylosig(tree, results[[i]], method="lambda")$lambda
+  K <- phylosig(tree, results[[i]], method="K")[1]
+  signal <- add_row(signal, variable="model", lambda=L, kappa=K)
+}
+
+write_csv(signal, "../saves/phylogenetic_signal.csv")
+
+signal <- read_csv("../saves/phylogenetic_signal.csv")
 
 # Mean and HDI for phylogenetic signals
 signal %>%
