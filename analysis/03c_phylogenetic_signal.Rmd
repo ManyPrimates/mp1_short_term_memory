@@ -58,9 +58,15 @@ phylo_data <- data %>%
 
 # Load tree
 tree <- read.tree("../phylo/mp_species.tree")
+
+# Species sanity checking
 data_species <- phylo_data$species_english %>% unique
+species_species <- species_data$species_english %>% unique
 tree_species <- tree$tip.label
-stopifnot(length(setdiff(data_species, intersect(tree_species, data_species))) == 0)
+stopifnot(length(setdiff(species_species, data_species))== 0)
+stopifnot(length(setdiff(data_species, species_species))== 0)
+stopifnot(length(setdiff(species_species, tree_species)) == 0)
+stopifnot(length(setdiff(data_species, tree_species)) == 0)
 tree <- keep.tip(tree, data_species)
 
 # # Compute lambda and kappa values for the various predictor variables
