@@ -1,0 +1,121 @@
+---
+title: "ManyPrimates1_Supplementary_Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ape)
+library(tidyverse)
+library(readxl)
+library(tidyboot)
+library(brms)
+library(broom)
+library(ggthemes)
+library(tidybayes)
+library(ggridges)
+library(ggpubr)
+```
+
+```{r}
+species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
+  mutate_all(., .funs = tolower)%>%
+  select(-contains("Source"), -contains("Comments"))%>%# remove columns with sources and comments
+  rename(vocal_repertoire = `vocal_repertoire (# vocalization types)`,
+         body_size = `body_size (kg)`)%>%
+  mutate_if(is.character, tolower)
+
+data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")%>%
+  left_join(species_data%>%select(species_english, superordinate_group)%>%rename(species = species_english))%>%
+  mutate(superordinate_group = factor(superordinate_group, levels = c("ape", "old_world_monkey", "new_world_monkey", "lemur")))
+```
+
+# Split-half reliability of delayed response task
+
+Here we split the data into odd and even trials to assess split-half reliability of the task. We exclude the short delay trials to get a measure that loads more strongly on short-term memory abilities. The result does not change much if these trials are included as well. 
+
+```{r}
+rel <- data %>%
+  filter(condition != "short")%>%
+  mutate(test_half = ifelse(trial %%2 , "even_trials", "odd_trials"))%>%
+  group_by(superordinate_group, species, subject_site, test_half)%>%
+  summarise(mean = mean(correct))%>%
+  pivot_wider(names_from = test_half, values_from = mean)
+
+ggplot(rel, aes(x = even_trials, y = odd_trials, col = superordinate_group))+
+  geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
+  stat_cor(method = "pearson", aes(x = even_trials, y = odd_trials, label = paste(..r.label..)),cor.coef.name = "r", inherit.aes = F, size = 3)+
+  geom_count(alpha = .75)+
+  labs (x = "Test-half 1 (even trials)", y = "Test-half 2 (odd trials)")+
+  scale_color_colorblind(name = "Clade")+
+  theme_minimal()
+```
+```{r}
+ggsave("../figures/split_half_reliability.png", height = 4, width = 7)
+```
+
+
+# Comparison across sites
+
+We visualize the performance for one species at different data collection sites. We only included sites with at least 5 individuals of a species. 
+
+```{r}
+site_1 <- data %>%
+  group_by(species, site)%>%
+  mutate(subject_per_site = length(unique(subject_site)))%>%
+  filter(subject_per_site > 5)%>%
+  group_by(species)%>%
+  mutate(sites_species = length(unique(site)))%>%
+  filter(sites_species > 1)%>%
+  mutate(site = paste("Site",as.numeric(factor(site))))%>%
+  group_by(species, site, subject_site, condition)%>%
+  summarise(mean = mean(correct))
+
+site_2 <- site_1%>%
+  group_by(species, site, condition)%>%
+  tidyboot_mean(column = mean)
+
+ggplot()+
+  geom_hline(yintercept = 1/3, lty = 2)+
+  geom_point(data = site_1, aes(x = site, y = mean, col = condition), position = position_jitterdodge(jitter.height = 0., jitter.width = 0.1, dodge.width = 0.5), alpha = .25, width = .05, height = 0)+
+  geom_pointrange(data = site_2, aes(x = site, y = mean, col = condition, ymin = ci_lower, ymax = ci_upper, col = condition), position = position_dodge(width = .5))+
+  labs(x = "Site", y = "Proportion Correct")+
+  scale_color_ptol(name = "Delay")+
+  facet_wrap(species~., scales = "free_y")+
+  ylim(-0.05, 1.05)+
+  theme_few()+
+  coord_flip()
+
+```
+
+```{r}
+ggsave("../figures/sites.png", height = 4, width = 10)
+```
+
+# Correlation between STM performance and predictor variables
+
+Here we correlate STM performance with the numeric predictor variables. STM performance was computed based on the medium and long delay trials. the results do not change much when short delay trials are also included. 
+
+```{r}
+pred_cor <- data%>%
+  filter(condition != "short")%>%
+  group_by(superordinate_group, species)%>%
+  summarise(mean = mean(correct))%>%
+  right_join(species_data%>%rename(species = species_english)%>%select(-color_vision, -diet_diversity,-terrestriality, -life_expectancy, -body_size)%>%
+              pivot_longer(cols = c(vocal_repertoire,group_size,home_range,day_journey_length,resting_time_percent_activitybudget,feeding_budget,dietary_breadth,percent_frugivory,home_range_body_site_ratio), names_to = "predictor", values_to = "value"))
+
+
+ggplot(pred_cor, aes(x = mean, y = value, col = superordinate_group))+
+  #geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
+  geom_smooth(method = "lm", inherit.aes = F, aes(x = mean, y = value), col = "firebrick", size = 0.5)+
+  geom_point(alpha = .75)+
+  stat_cor(method = "pearson", aes(x = mean, y = value, label = paste(..r.label..)),cor.coef.name = "r", inherit.aes = F, size = 3)+
+  labs (x = "STM performance", y = "Predictor (scaled)")+
+  facet_wrap(~predictor, nrow = 3, scales = "free_y")+
+  scale_color_colorblind(name = "Clade")+
+  xlim(0,1)+
+  theme_few()
+```
+
+```{r}
+ggsave("../figures/correlation_predictor_stm.png", height = 5, width = 8)
+```
