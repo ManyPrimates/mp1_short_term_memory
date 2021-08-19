@@ -160,9 +160,10 @@ model_draws %>%
   scale_fill_manual(
    values = c("firebrick", "NA", "firebrick")
   )+
+    labs(x = "Estimate", y = "Model")+
   guides(fill = F)
 ```
 
 ```{r}
-ggsave("../figures/phylo_model_predictors.png", height = 3, width = 8)
+ggsave("../figures/phylo_model_predictors.png", height = 3, width = 7)
 ```
