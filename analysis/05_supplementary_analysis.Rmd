@@ -119,3 +119,50 @@ ggplot(pred_cor, aes(x = mean, y = value, col = superordinate_group))+
 ```{r}
 ggsave("../figures/correlation_predictor_stm.png", height = 5, width = 8)
 ```
+
+# Visualize predictor models and baseline
+
+```{r}
+ base_model  <- readRDS("../saves/phylo_base_model.rds")  
+ vocal_repertoire_model <- readRDS("../saves/phylo_vocal_repertoire_model.rds") 
+ dietary_breadth_model <- readRDS("../saves/phylo_dietary_breadth_model.rds")
+```
+
+## Posterior distributions for predictors
+```{r}
+model_draws <-  bind_rows(
+  vocal_repertoire_model%>% posterior_samples(pars = c("b_delay","b_vocal_repertoire","b_delay:vocal_repertoire"))%>%
+    rename(delay = b_delay,
+           predictor = b_vocal_repertoire,
+           interaction = `b_delay:vocal_repertoire`)%>%
+    mutate(model= "vocal_repertoire"),
+  dietary_breadth_model%>% posterior_samples(pars = c("b_delay","b_dietary_breadth","b_delay:dietary_breadth"))%>%
+    rename(delay = b_delay,
+           predictor = b_dietary_breadth,
+           interaction = `b_delay:dietary_breadth`)%>%
+    mutate(model= "dietary_breadth"),
+  base_model%>% posterior_samples(pars = c("b_delay"))%>%
+    rename(delay = b_delay)%>%
+    mutate(model= "baseline")
+)%>%
+  pivot_longer(names_to = "estimate", values_to = "value", cols = c(delay,predictor,interaction ))
+
+model_draws %>%
+  ggplot(.,aes(x = value, y= model, fill = factor(stat(quantile))))+
+  geom_vline(xintercept = 0, lty = 2)+
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE,
+    quantiles = c(0.025, 0.975)
+  ) +
+  facet_grid(~estimate)+
+  theme_minimal() +
+  scale_fill_manual(
+   values = c("firebrick", "NA", "firebrick")
+  )+
+  guides(fill = F)
+```
+
+```{r}
+ggsave("../figures/phylo_model_predictors.png", height = 3, width = 8)
+```
