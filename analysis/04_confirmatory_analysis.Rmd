@@ -209,8 +209,6 @@ ggsave("../figures/confirmatory_analysis_main_effects.png")
 
 In the pilot, we included age in an interaction with delay. We add this model here as part of the exploratory analysis. 
 
-To access the model outputs, download them here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/`
-
 ```{r}
 # int_model <- brm(correct ~ delay * norm_age +
 #                     task_experience + cup_distance + board_size + trial +
@@ -253,8 +251,6 @@ int_model <- readRDS("../saves/conf_int_model.rds")
 ## Quadratic model
 
 We also add a model that assumes a non-linear relation between age and performance. 
-
-To access the model outputs, download them here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/`
 
 ```{r}
 # quad_model <- brm(correct ~ delay + norm_age + I(norm_age^2) +
