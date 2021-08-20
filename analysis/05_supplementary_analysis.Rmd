@@ -29,6 +29,25 @@ data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")%>%
   mutate(superordinate_group = factor(superordinate_group, levels = c("ape", "old_world_monkey", "new_world_monkey", "lemur")))
 ```
 
+# Relation between age and STM performance
+
+```{r}
+age <- data %>%
+  filter(condition != "short")%>%
+  group_by(superordinate_group, species, subject_site,norm_age)%>%
+  summarise(mean = mean(correct))
+
+ggplot(age, aes(x = norm_age, y = mean, col = superordinate_group))+
+  geom_point(alpha = .75)+
+  geom_smooth(method = "lm", inherit.aes = F, aes(x = norm_age, y = mean),col = "firebrick", size = 0.5)+
+  labs (x = "Normed age", y = "STM performance")+
+  scale_color_colorblind(name = "Clade")+
+  theme_minimal()
+```
+```{r}
+ggsave("../figures/age.png", height = 3, width = 7)
+```
+
 # Split-half reliability of delayed response task
 
 Here we split the data into odd and even trials to assess split-half reliability of the task. We exclude the short delay trials to get a measure that loads more strongly on short-term memory abilities. The result does not change much if these trials are included as well. 
@@ -167,3 +186,5 @@ model_draws %>%
 ```{r}
 ggsave("../figures/phylo_model_predictors.png", height = 3, width = 7)
 ```
+
+

@@ -203,13 +203,13 @@ model_draws %>%
 ggsave("../figures/confirmatory_analysis_main_effects.png")
 ```
 
-# Exploratory analysis
+# Exploratory analysis for age
 
 ## Interaction model
 
-In the pilot, we included age in an interaction with delay. We add this model here as well as an exploratory analysis
+In the pilot, we included age in an interaction with delay. We add this model here as part of the exploratory analysis. 
 
-To access the model output, download it here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/`
+To access the model outputs, download them here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/`
 
 ```{r}
 # int_model <- brm(correct ~ delay * norm_age +
@@ -247,36 +247,81 @@ To access the model output, download it here: `https://keeper.mpdl.mpg.de/d/d258
 # int_model %>% saveRDS("../saves/conf_int_model.rds")
 
 int_model <- readRDS("../saves/conf_int_model.rds")
+
 ```
 
-## Exploratory model comparison
+## Quadratic model
+
+We also add a model that assumes a non-linear relation between age and performance. 
+
+To access the model outputs, download them here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/`
+
+```{r}
+# quad_model <- brm(correct ~ delay + norm_age + I(norm_age^2) +
+#                     task_experience + cup_distance + board_size + trial +
+#                    (1 + delay + trial | subject_site + site + species),
+#                    data=data,
+#                    family=bernoulli(),
+#                    chains = 4,
+#                    iter= 5000,
+#                    cores= 4,
+#                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
+#                            prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+#                            prior(normal(0, 1), class=b, coef=board_size) +
+#                            prior(normal(0, 1), class=b, coef=trial) +
+#                            prior(normal(0, 1), class=b, coef=cup_distance) +
+#                            prior(normal(0, 1), class=b, coef=norm_age) +
+#                            prior(normal(0, 1), class=b, coef=Inorm_ageE2) +
+#                            prior(normal(0, 2), class=b, coef=task_experienceyes) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+#                            prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+#                            prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
+#                            prior("lkj(1)", class = "cor")
+#                 )
+# 
+# summary(quad_model)
+# 
+# quad_model <- add_criterion(quad_model, c("loo", "waic"))
+# 
+# quad_model %>% saveRDS("../saves/conf_quad_model.rds")
+
+quad_model <- readRDS("../saves/conf_quad_model.rds")
+```
+
+## Model comparison
 
 ```{r}
 # comp_waic_exp <-  loo_compare(
 #   full_model,
-#   null_model,
 #   int_model,
+#   quad_model,
 #   criterion = c("waic"))%>%
 #   as_tibble(rownames = "model")
 # 
 # comp_loo_exp <-  loo_compare(
 #   full_model,
-#   null_model,
 #   int_model,
+#   quad_model,
 #   criterion = c("loo"))%>%
 #   as_tibble(rownames = "model")
 # 
-# weights_waic_exp <- model_weights(full_model, null_model,int_model, weights = "waic")%>%
+# weights_waic_exp <- model_weights(full_model, int_model,quad_model, weights = "waic")%>%
 #   as_tibble() %>%
 #   rename(waic_weight = value) %>%
-#   mutate(model  = c("full_model", "null_model","int_model"),
+#   mutate(model  = c("full_model", "int_model","quad_model"),
 #          waic_weight = waic_weight %>% round(digits = 4)) %>%
 #   select(model, waic_weight)
 # 
-# weights_loo_exp <- model_weights(full_model, null_model,int_model, weights = "loo")%>%
+# weights_loo_exp <- model_weights(full_model, int_model, quad_model, weights = "loo")%>%
 #   as_tibble() %>%
 #   rename(loo_weight = value) %>%
-#   mutate(model  = c("full_model", "null_model","int_model"),
+#   mutate(model  = c("full_model","int_model", "quad_model"),
 #          loo_weight = loo_weight %>% round(digits = 4)) %>%
 #   select(model, loo_weight)
 # 

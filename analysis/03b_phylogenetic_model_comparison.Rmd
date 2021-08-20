@@ -413,7 +413,7 @@ phylo_model_comparison <- read_csv("../saves/phylogenetic_model_comparison_phylo
 
 ```
 
-# Visualize winning model and baseline
+# Visualize predictor models and baseline
 
 ## Posterior distributions for predictors
 ```{r}
@@ -541,29 +541,6 @@ ggplot(model_pred,aes(x = predictor, y= prediction, col = delay))+
   theme_minimal() +
   guides(col = F)+
   scale_color_colorblind()
-```
-
-
-## Correlation between predictor and stm performance
-
-Performance estimate is the species intercept from the baseline model. Not sure if that makes sense.
-
-```{r}
-base_model%>% spread_draws(r_species_english[species_english,term])%>%
-  filter(term == "Intercept")%>%
-  rename(stm_estimate = "r_species_english")%>%
-  group_by(species_english)%>%
-  median_qi(stm_estimate)%>%
-  left_join(species_data%>%
-              select(species_english,superordinate_group,vocal_repertoire, dietary_breadth))%>%
-  pivot_longer(cols = c(vocal_repertoire, dietary_breadth), names_to = "predictor", values_to = "predictor_value")%>%
-  ggplot(aes(x = predictor_value, y = stm_estimate, col = superordinate_group))+
-  geom_point(alpha = .5)+
-  facet_grid(~predictor, scales = "free_x")+
-  geom_smooth(method = lm, se = F, lty = 2, col = "grey")+
-  stat_cor(method = "pearson", inherit.aes = F, aes(x = predictor_value, y = stm_estimate), r.accuracy = 0.01, cor.coef.name = "r")+
-  theme_few()
-  
 ```
 
 
