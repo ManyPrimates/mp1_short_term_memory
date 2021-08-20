@@ -22,7 +22,30 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
   select(-contains("Source"), -contains("Comments"))%>%# remove columns with sources and comments
   rename(vocal_repertoire = `vocal_repertoire (# vocalization types)`,
          body_size = `body_size (kg)`)%>%
-  mutate_if(is.character, tolower)
+  mutate_if(is.character, tolower)%>%
+  filter(species_english != "allens_swamp_monkey",
+         species_english != "hamlyns_monkey") %>%
+  mutate(vocal_repertoire = as.numeric(vocal_repertoire),
+         group_size = as.numeric(group_size),
+         home_range = as.numeric(home_range),
+         feeding_budget = as.numeric(feeding_budget),
+         day_journey_length= as.numeric(day_journey_length),
+         resting_time_percent_activitybudget= as.numeric(resting_time_percent_activitybudget),
+         feeding_budget= as.numeric(feeding_budget),
+         dietary_breadth= as.numeric(dietary_breadth),
+         percent_frugivory= as.numeric(percent_frugivory),
+         body_size= as.numeric(body_size),
+         home_range_body_site_ratio = home_range/body_size)%>%
+  mutate(resting_time_percent_activitybudget = scale(resting_time_percent_activitybudget, center = T, scale = T),
+         home_range_body_site_ratio = scale(home_range_body_site_ratio, center = T, scale = T),
+         home_range = scale(home_range, center = T, scale = T),
+         feeding_budget = scale(feeding_budget, center = T, scale = T),
+         dietary_breadth = scale(dietary_breadth, center = T, scale = T),
+         vocal_repertoire = scale(vocal_repertoire, center = T, scale = T),
+         group_size = scale(group_size, center = T, scale = T),
+         day_journey_length = scale(day_journey_length, center = T, scale = T),
+         percent_frugivory = scale(percent_frugivory, center = T, scale = T),
+         feeding_budget = scale(feeding_budget, center = T, scale =T))
 
 data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")%>%
   left_join(species_data%>%select(species_english, superordinate_group)%>%rename(species = species_english))%>%
@@ -119,24 +142,24 @@ pred_cor <- data%>%
   filter(condition != "short")%>%
   group_by(superordinate_group, species)%>%
   summarise(mean = mean(correct))%>%
-  right_join(species_data%>%rename(species = species_english)%>%select(-color_vision, -diet_diversity,-terrestriality, -life_expectancy, -body_size)%>%
-              pivot_longer(cols = c(vocal_repertoire,group_size,home_range,day_journey_length,resting_time_percent_activitybudget,feeding_budget,dietary_breadth,percent_frugivory,home_range_body_site_ratio), names_to = "predictor", values_to = "value"))
+  right_join(species_data%>%rename(species = species_english)%>%select(-color_vision, -diet_diversity,-terrestriality, -life_expectancy, -body_size)%>%pivot_longer(cols = c(vocal_repertoire,group_size,home_range,day_journey_length,resting_time_percent_activitybudget,feeding_budget,dietary_breadth,percent_frugivory, home_range_body_site_ratio), names_to = "predictor", values_to = "value"))
 
 
-ggplot(pred_cor, aes(x = mean, y = value, col = superordinate_group))+
+ggplot(pred_cor, aes(x = value, y = mean, col = superordinate_group))+
   #geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
-  geom_smooth(method = "lm", inherit.aes = F, aes(x = mean, y = value), col = "firebrick", size = 0.5)+
-  geom_point(alpha = .75)+
-  stat_cor(method = "pearson", aes(x = mean, y = value, label = paste(..r.label..)),cor.coef.name = "r", inherit.aes = F, size = 3)+
-  labs (x = "STM performance", y = "Predictor (scaled)")+
-  facet_wrap(~predictor, nrow = 3, scales = "free_y")+
+  geom_smooth(method = "lm", inherit.aes = F, aes(x = value, y = mean), col = "firebrick", size = 0.5)+
+  geom_jitter(alpha = .5)+
+  stat_cor(method = "pearson", aes(x = value, y = mean, label = paste(..r.label..)),cor.coef.name = "r", inherit.aes = F, size = 3)+
+  labs (y = "STM performance", x = "Predictor (scaled)")+
+  facet_wrap(~predictor, nrow = 3, scales = "free_x")+
   scale_color_colorblind(name = "Clade")+
-  xlim(0,1)+
-  theme_few()
+  ylim(0,1)+
+  theme_few()+
+  theme(legend.position = "bottom")
 ```
 
 ```{r}
-ggsave("../figures/correlation_predictor_stm.png", height = 5, width = 8)
+ggsave("../figures/correlation_predictor_stm.png", height = 6, width = 8)
 ```
 
 # Visualize predictor models and baseline
