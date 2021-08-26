@@ -23,8 +23,8 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
   rename(vocal_repertoire = `vocal_repertoire (# vocalization types)`,
          body_size = `body_size (kg)`)%>%
   mutate_if(is.character, tolower)%>%
-  filter(species_english != "allens_swamp_monkey",
-         species_english != "hamlyns_monkey") %>%
+#  filter(species_english != "allens_swamp_monkey",
+ #        species_english != "hamlyns_monkey") %>%
   mutate(vocal_repertoire = as.numeric(vocal_repertoire),
          group_size = as.numeric(group_size),
          home_range = as.numeric(home_range),
@@ -49,7 +49,7 @@ species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
 
 data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")%>%
   left_join(species_data%>%select(species_english, superordinate_group)%>%rename(species = species_english))%>%
-  mutate(superordinate_group = factor(superordinate_group, levels = c("ape", "old_world_monkey", "new_world_monkey", "lemur")))
+  mutate(superordinate_group = factor(superordinate_group, levels = c("ape", "old_world_monkey", "new_world_monkey", "lemur"), labels = c("Hominoidea", "Cercopithecoidea", "Platyrrhini", "Strepsirrhini")))
 ```
 
 # Relation between age and STM performance
@@ -60,15 +60,16 @@ age <- data %>%
   group_by(superordinate_group, species, subject_site,norm_age)%>%
   summarise(mean = mean(correct))
 
-ggplot(age, aes(x = norm_age, y = mean, col = superordinate_group))+
+ggplot(age, aes(x = norm_age, y = mean, col = superordinate_group, pch = superordinate_group))+
   geom_point(alpha = .75)+
   geom_smooth(method = "lm", inherit.aes = F, aes(x = norm_age, y = mean),col = "firebrick", size = 0.5)+
   labs (x = "Normed age", y = "STM performance")+
   scale_color_colorblind(name = "Clade")+
+  scale_shape(name = "Clade")+
   theme_minimal()
 ```
 ```{r}
-ggsave("../figures/age.png", height = 3, width = 7)
+ggsave("../figures/age.png", height = 4, width = 7)
 ```
 
 # Split-half reliability of delayed response task
@@ -83,12 +84,13 @@ rel <- data %>%
   summarise(mean = mean(correct))%>%
   pivot_wider(names_from = test_half, values_from = mean)
 
-ggplot(rel, aes(x = even_trials, y = odd_trials, col = superordinate_group))+
+ggplot(rel, aes(x = even_trials, y = odd_trials, col = superordinate_group, pch = superordinate_group))+
   geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
   stat_cor(method = "pearson", aes(x = even_trials, y = odd_trials, label = paste(..r.label..)),cor.coef.name = "r", inherit.aes = F, size = 3)+
   geom_count(alpha = .75)+
   labs (x = "Test-half 1 (even trials)", y = "Test-half 2 (odd trials)")+
   scale_color_colorblind(name = "Clade")+
+  scale_shape(name = "Clade")+
   theme_minimal()
 ```
 ```{r}
@@ -139,27 +141,38 @@ Here we correlate STM performance with the numeric predictor variables. STM perf
 
 ```{r}
 pred_cor <- data%>%
+  filter(species != "allens_swamp_monkey",
+        species != "hamlyns_monkey") %>%
   filter(condition != "short")%>%
   group_by(superordinate_group, species)%>%
   summarise(mean = mean(correct))%>%
-  right_join(species_data%>%rename(species = species_english)%>%select(-color_vision, -diet_diversity,-terrestriality, -life_expectancy, -body_size)%>%pivot_longer(cols = c(vocal_repertoire,group_size,home_range,day_journey_length,resting_time_percent_activitybudget,feeding_budget,dietary_breadth,percent_frugivory, home_range_body_site_ratio), names_to = "predictor", values_to = "value"))
+  right_join(
+    species_data%>%
+      filter(species_english != "allens_swamp_monkey",
+             species_english != "hamlyns_monkey")%>%
+      mutate(superordinate_group = factor(superordinate_group, levels = c("ape", "old_world_monkey", "new_world_monkey", "lemur"), labels = c("Hominoidea", "Cercopithecoidea", "Platyrrhini", "Strepsirrhini")))%>%
+      rename(species = species_english)%>%
+      select(-color_vision, -diet_diversity,-terrestriality, -life_expectancy, -body_size)%>%
+    pivot_longer(cols = c(vocal_repertoire,group_size,home_range,day_journey_length,resting_time_percent_activitybudget,feeding_budget,dietary_breadth,percent_frugivory, home_range_body_site_ratio), 
+                 names_to = "predictor", values_to = "value"))
 
 
-ggplot(pred_cor, aes(x = value, y = mean, col = superordinate_group))+
+ggplot(pred_cor, aes(x = value, y = mean, col = superordinate_group, pch = superordinate_group))+
   #geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
   geom_smooth(method = "lm", inherit.aes = F, aes(x = value, y = mean), col = "firebrick", size = 0.5)+
-  geom_jitter(alpha = .5)+
+  geom_jitter(alpha = .75)+
   stat_cor(method = "pearson", aes(x = value, y = mean, label = paste(..r.label..)),cor.coef.name = "r", inherit.aes = F, size = 3)+
   labs (y = "STM performance", x = "Predictor (scaled)")+
   facet_wrap(~predictor, nrow = 3, scales = "free_x")+
   scale_color_colorblind(name = "Clade")+
+  scale_shape(name = "Clade")+
   ylim(0,1)+
   theme_few()+
   theme(legend.position = "bottom")
 ```
 
 ```{r}
-ggsave("../figures/correlation_predictor_stm.png", height = 6, width = 8)
+ggsave("../figures/correlation_predictor_stm.png", height = 8, width = 8)
 ```
 
 # Visualize predictor models and baseline
@@ -210,4 +223,29 @@ model_draws %>%
 ggsave("../figures/phylo_model_predictors.png", height = 3, width = 7)
 ```
 
+# Relation between body size and cup distance
 
+```{r}
+cup <- data%>%
+  filter(condition != "short")%>%
+  group_by(superordinate_group, species, subject_site)%>%
+  summarise(cup_distance = mean(cup_distance), 
+            mean = mean(correct))%>%
+  left_join(
+    species_data%>%
+      mutate(superordinate_group = factor(superordinate_group, levels = c("ape", "old_world_monkey", "new_world_monkey", "lemur"), labels = c("Hominoidea", "Cercopithecoidea", "Platyrrhini", "Strepsirrhini")))%>%
+      rename(species = species_english)%>%
+      select(species,superordinate_group,body_size))
+
+ggplot(cup, aes(x = cup_distance, y = body_size, col = mean, pch = superordinate_group))+
+  stat_cor(method = "pearson", aes(x = cup_distance, y = body_size, label = paste(..r.label..)),cor.coef.name = "r", inherit.aes = F, size = 3)+
+  geom_smooth(method = "lm", inherit.aes = F, aes(x = cup_distance, y = body_size), col = "firebrick", size = 0.5)+
+  geom_jitter(alpha = .5)+
+  labs (x = "Cup distance", y = "Body size")+
+  scale_color_viridis_c(name = "Performance in delay trials")+
+  scale_shape(name = "Clade")+
+  theme_minimal()
+```
+```{r}
+ggsave("../figures/body_size_cup_distance.png", height = 4, width = 8)
+```
