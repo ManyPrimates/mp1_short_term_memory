@@ -234,24 +234,28 @@ model_comparison_filename <- "../saves/confirmatory_model_comparison.csv"
 if(file.exists(model_comparison_filename)) {
     model_comparison <- read_csv(model_comparison_filename)
 } else {
-    comp_waic <-  loo_compare(numeric_delay_model, null_model, criterion = c("waic")) %>%
+    comp_waic <-  loo_compare(numeric_delay_model, factor_delay_model, binary_delay_model,
+			      null_model, criterion = c("waic")) %>%
                       as_tibble(rownames = "model")
 
-    comp_loo <-  loo_compare(numeric_delay_model, null_model, criterion = c("loo")) %>%
+    comp_loo <-  loo_compare(numeric_delay_model, factor_delay_model, binary_delay_model,
+			      null_model, criterion = c("loo")) %>%
                       as_tibble(rownames = "model")
 
-    weights_waic <- model_weights(numeric_delay_model, null_model, weights = "waic") %>%
+    weights_waic <- model_weights(numeric_delay_model, factor_delay_model, binary_delay_model,
+				  null_model, weights = "waic") %>%
         as_tibble() %>%
         rename(waic_weight = value) %>%
-        mutate(model  = c("numeric_delay_model", "null_model"),
-            waic_weight = waic_weight %>% round(digits = 4)) %>%
+        mutate(model  = c("numeric_delay_model", "factor_delay_model", "binary_delay_model",
+			  "null_model"), waic_weight = waic_weight %>% round(digits = 4)) %>%
         select(model, waic_weight)
 
-    weights_loo <- model_weights(numeric_delay_model, null_model, weights = "loo")%>%
+    weights_loo <- model_weights(numeric_delay_model, factor_delay_model, binary_delay_model,
+				  null_model, weights = "loo") %>%
         as_tibble() %>%
         rename(loo_weight = value) %>%
-        mutate(model  = c("numeric_delay_model", "null_model"),
-            loo_weight = loo_weight %>% round(digits = 4)) %>%
+        mutate(model  = c("numeric_delay_model", "factor_delay_model", "binary_delay_model",
+			  "null_model"), loo_weight = loo_weight %>% round(digits = 4)) %>%
         select(model, loo_weight)
 
     # Combine weights and scores
