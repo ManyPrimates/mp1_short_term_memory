@@ -390,43 +390,45 @@ if(file.exists(quad_model_filename)) {
 ## Model comparison
 
 ```{r}
-# comp_waic_exp <-  loo_compare(
-#   numeric_delay_model,
-#   int_model,
-#   quad_model,
-#   criterion = c("waic"))%>%
-#   as_tibble(rownames = "model")
-# 
-# comp_loo_exp <-  loo_compare(
-#   numeric_delay_model,
-#   int_model,
-#   quad_model,
-#   criterion = c("loo"))%>%
-#   as_tibble(rownames = "model")
-# 
-# weights_waic_exp <- model_weights(numeric_delay_model, int_model,quad_model, weights = "waic")%>%
-#   as_tibble() %>%
-#   rename(waic_weight = value) %>%
-#   mutate(model  = c("numeric_delay_model", "int_model","quad_model"),
-#          waic_weight = waic_weight %>% round(digits = 4)) %>%
-#   select(model, waic_weight)
-# 
-# weights_loo_exp <- model_weights(numeric_delay_model, int_model, quad_model, weights = "loo")%>%
-#   as_tibble() %>%
-#   rename(loo_weight = value) %>%
-#   mutate(model  = c("numeric_delay_model","int_model", "quad_model"),
-#          loo_weight = loo_weight %>% round(digits = 4)) %>%
-#   select(model, loo_weight)
-# 
-# # Combine weights and scores
-# model_comparison_exp <- comp_waic_exp %>%select(model,waic, se_waic)%>%
-#   left_join(weights_waic_exp)%>%
-#   left_join(comp_loo_exp %>%select(model,looic, se_looic))%>%
-#   left_join(weights_loo_exp)%>%
-#   arrange(desc(waic_weight))
-# 
-# write_csv(model_comparison_exp, "../saves/confirmatory_model_comparison_exploratory.csv")
+model_comparison_exp_filename <- "../saves/confirmatory_model_comparison_exploratory.csv"
+if(!file.exists(model_comparison_exp_filename)) {
 
-model_comparison_exp <- read_csv("../saves/confirmatory_model_comparison_exploratory.csv")
+ comp_waic_exp <-  loo_compare(
+   numeric_delay_model,
+   int_model,
+   quad_model,
+   criterion = c("waic"))%>%
+   as_tibble(rownames = "model")
+
+ comp_loo_exp <-  loo_compare(
+   numeric_delay_model,
+   int_model,
+   quad_model,
+   criterion = c("loo"))%>%
+   as_tibble(rownames = "model")
+
+ weights_waic_exp <- model_weights(numeric_delay_model, int_model,quad_model, weights = "waic")%>%
+   as_tibble() %>%
+   rename(waic_weight = value) %>%
+   mutate(model  = c("numeric_delay_model", "int_model","quad_model"),
+          waic_weight = waic_weight %>% round(digits = 4)) %>%
+   select(model, waic_weight)
+
+ weights_loo_exp <- model_weights(numeric_delay_model, int_model, quad_model, weights = "loo")%>%
+   as_tibble() %>%
+   rename(loo_weight = value) %>%
+   mutate(model  = c("numeric_delay_model","int_model", "quad_model"),
+          loo_weight = loo_weight %>% round(digits = 4)) %>%
+   select(model, loo_weight)
+
+ # Combine weights and scores
+ model_comparison_exp <- comp_waic_exp %>%select(model,waic, se_waic)%>%
+   left_join(weights_waic_exp)%>%
+   left_join(comp_loo_exp %>%select(model,looic, se_looic))%>%
+   left_join(weights_loo_exp)%>%
+   arrange(desc(waic_weight))
+
+ write_csv(model_comparison_exp, "../saves/confirmatory_model_comparison_exploratory.csv")
+}
 
 ```
