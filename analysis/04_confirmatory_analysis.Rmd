@@ -115,7 +115,7 @@ factor_delay_model_filename <- "../saves/conf_factor_delay_model.rds"
 if(file.exists(factor_delay_model_filename)) {
     factor_delay_model <- readRDS(factor_delay_model_filename)
 } else {
-    data$factor_delay <- as.factor(data$delay)
+    data$factor_delay <- factor(data$delay, c(0, -1, 1))
     factor_delay_model <- brm(correct ~ factor_delay +
                       task_experience + norm_age + cup_distance + board_size + trial +
                       (1 + factor_delay + trial | subject_site + site + species),
@@ -125,8 +125,8 @@ if(file.exists(factor_delay_model_filename)) {
                       iter= 5000,
                       cores= 4,
                       prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                              prior(skew_normal(-1.4, 2, 3), class=b, coef=factor_delay0) +
-                              prior(skew_normal(-1.4, 2, 3), class=b, coef=factor_delay1) +
+                              prior(skew_normal(1.4, 2, 3), class=b, coef=factor_delayM1) +
+                              prior(skew_normal(-1.4, 2, -3), class=b, coef=factor_delay1) +
                               prior(normal(0, 1), class=b, coef=board_size) +
                               prior(normal(0, 1), class=b, coef=trial) +
                               prior(normal(0, 1), class=b, coef=cup_distance) +
@@ -135,9 +135,9 @@ if(file.exists(factor_delay_model_filename)) {
                               prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
                               prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
                               prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
-                              prior(normal(0, 0.5), class=sd, coef=factor_delay0, group=subject_site) +
-                              prior(normal(0, 0.5), class=sd, coef=factor_delay0, group=site) +
-                              prior(normal(0, 0.5), class=sd, coef=factor_delay0, group=species) +
+                              prior(normal(0, 0.5), class=sd, coef=factor_delayM1, group=subject_site) +
+                              prior(normal(0, 0.5), class=sd, coef=factor_delayM1, group=site) +
+                              prior(normal(0, 0.5), class=sd, coef=factor_delayM1, group=species) +
                               prior(normal(0, 0.5), class=sd, coef=factor_delay1, group=subject_site) +
                               prior(normal(0, 0.5), class=sd, coef=factor_delay1, group=site) +
                               prior(normal(0, 0.5), class=sd, coef=factor_delay1, group=species) +
