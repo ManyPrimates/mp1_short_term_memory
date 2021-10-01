@@ -85,7 +85,7 @@ if(file.exists(numeric_delay_model_filename)) {
                       iter= 5000,
                       cores= 4,
                       prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                              prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+                              prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
                               prior(normal(0, 1), class=b, coef=board_size) +
                               prior(normal(0, 1), class=b, coef=trial) +
                               prior(normal(0, 1), class=b, coef=cup_distance) +
@@ -169,7 +169,7 @@ if(file.exists(binary_delay_model_filename)) {
                       iter= 5000,
                       cores= 4,
                       prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                              prior(skew_normal(-1.4, 2, 3), class=b, coef=binary_delay1) +
+                              prior(skew_normal(-1.4, 2, -3), class=b, coef=binary_delay1) +
                               prior(normal(0, 1), class=b, coef=board_size) +
                               prior(normal(0, 1), class=b, coef=trial) +
                               prior(normal(0, 1), class=b, coef=cup_distance) +
@@ -313,7 +313,7 @@ In the pilot, we included age in an interaction with delay. We add this model he
 #                    iter= 5000,
 #                    cores= 4,
 #                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-#                            prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+#                            prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
 #                            prior(normal(0, 1), class=b, coef=board_size) +
 #                            prior(normal(0, 1), class=b, coef=trial) +
 #                            prior(normal(0, 1), class=b, coef=cup_distance) +
@@ -356,7 +356,7 @@ We also add a model that assumes a non-linear relation between age and performan
 #                    iter= 5000,
 #                    cores= 4,
 #                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-#                            prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+#                            prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
 #                            prior(normal(0, 1), class=b, coef=board_size) +
 #                            prior(normal(0, 1), class=b, coef=trial) +
 #                            prior(normal(0, 1), class=b, coef=cup_distance) +
