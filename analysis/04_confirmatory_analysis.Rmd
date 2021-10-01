@@ -308,16 +308,16 @@ int_model_filename <- "../saves/conf_int_model.rds"
 if(file.exists(int_model_filename)) {
     int_model <- readRDS(int_model_filename)
 } else {
-    int_model <- brm(correct ~ delay * norm_age +
+    int_model <- brm(correct ~ binary_delay * norm_age +
                      task_experience + cup_distance + board_size + trial +
-                     (1 + delay + trial | subject_site + site + species),
+                     (1 + binary_delay + trial | subject_site + site + species),
                      data=data,
                      family=bernoulli(),
                      chains = 4,
                      iter= 5000,
                      cores= 4,
                      prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                             prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
+                             prior(skew_normal(-1.4, 2, -3), class=b, coef=binary_delay1) +
                              prior(normal(0, 1), class=b, coef=board_size) +
                              prior(normal(0, 1), class=b, coef=trial) +
                              prior(normal(0, 1), class=b, coef=cup_distance) +
@@ -327,9 +327,9 @@ if(file.exists(int_model_filename)) {
                              prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
                              prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
                              prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
-                             prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                             prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                             prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+                             prior(normal(0, 0.5), class=sd, coef=binary_delay1, group=subject_site) +
+                             prior(normal(0, 0.5), class=sd, coef=binary_delay1, group=site) +
+                             prior(normal(0, 0.5), class=sd, coef=binary_delay1, group=species) +
                              prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
                              prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
                              prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
@@ -353,16 +353,16 @@ quad_model_filename <- "../saves/conf_quad_model.rds"
 if(file.exists(quad_model_filename)) {
     quad_model <- readRDS(quad_model_filename)
 } else {
-    quad_model <- brm(correct ~ delay + norm_age + I(norm_age^2) +
+    quad_model <- brm(correct ~ binary_delay + norm_age + I(norm_age^2) +
                       task_experience + cup_distance + board_size + trial +
-                     (1 + delay + trial | subject_site + site + species),
+                     (1 + binary_delay + trial | subject_site + site + species),
                      data=data,
                      family=bernoulli(),
                      chains = 4,
                      iter= 5000,
                      cores= 4,
                      prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                             prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
+                             prior(skew_normal(-1.4, 2, -3), class=b, coef=binary_delay1) +
                              prior(normal(0, 1), class=b, coef=board_size) +
                              prior(normal(0, 1), class=b, coef=trial) +
                              prior(normal(0, 1), class=b, coef=cup_distance) +
@@ -372,9 +372,9 @@ if(file.exists(quad_model_filename)) {
                              prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
                              prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
                              prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
-                             prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                             prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                             prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+                             prior(normal(0, 0.5), class=sd, coef=binary_delay1, group=subject_site) +
+                             prior(normal(0, 0.5), class=sd, coef=binary_delay1, group=site) +
+                             prior(normal(0, 0.5), class=sd, coef=binary_delay1, group=species) +
                              prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
                              prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
                              prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
