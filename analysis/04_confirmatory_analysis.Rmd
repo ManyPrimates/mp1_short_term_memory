@@ -304,41 +304,43 @@ ggsave("../figures/confirmatory_analysis_main_effects.png")
 In the pilot, we included age in an interaction with delay. We add this model here as part of the exploratory analysis. 
 
 ```{r}
-# int_model <- brm(correct ~ delay * norm_age +
-#                     task_experience + cup_distance + board_size + trial +
-#                    (1 + delay + trial | subject_site + site + species),
-#                    data=data,
-#                    family=bernoulli(),
-#                    chains = 4,
-#                    iter= 5000,
-#                    cores= 4,
-#                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-#                            prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
-#                            prior(normal(0, 1), class=b, coef=board_size) +
-#                            prior(normal(0, 1), class=b, coef=trial) +
-#                            prior(normal(0, 1), class=b, coef=cup_distance) +
-#                            prior(normal(0, 1), class=b, coef=norm_age) +
-#                            prior(normal(0, 1), class=b, coef=`delay:norm_age`) +
-#                            prior(normal(0, 2), class=b, coef=task_experienceyes) +
-#                            prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-#                            prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-#                            prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
-#                            prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-#                            prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-#                            prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
-#                            prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-#                            prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-#                            prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
-#                            prior("lkj(1)", class = "cor")
-#                 )
-# 
-# summary(int_model)
-# 
-# int_model <- add_criterion(int_model, c("loo", "waic"))
-# 
-# int_model %>% saveRDS("../saves/conf_int_model.rds")
+int_model_filename <- "../saves/conf_int_model.rds"
+if(file.exists(int_model_filename)) {
+    int_model <- readRDS(int_model_filename)
+} else {
+    int_model <- brm(correct ~ delay * norm_age +
+                     task_experience + cup_distance + board_size + trial +
+                     (1 + delay + trial | subject_site + site + species),
+                     data=data,
+                     family=bernoulli(),
+                     chains = 4,
+                     iter= 5000,
+                     cores= 4,
+                     prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
+                             prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
+                             prior(normal(0, 1), class=b, coef=board_size) +
+                             prior(normal(0, 1), class=b, coef=trial) +
+                             prior(normal(0, 1), class=b, coef=cup_distance) +
+                             prior(normal(0, 1), class=b, coef=norm_age) +
+                             prior(normal(0, 1), class=b, coef=`delay:norm_age`) +
+                             prior(normal(0, 2), class=b, coef=task_experienceyes) +
+                             prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+                             prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+                             prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
+                             prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+                             prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+                             prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+                             prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+                             prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+                             prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
+                             prior("lkj(1)", class = "cor")
+                  )
 
-int_model <- readRDS("../saves/conf_int_model.rds")
+    summary(int_model)
+
+    int_model <- add_criterion(int_model, c("loo", "waic"))
+    saveRDS(int_model, int_model_filename)
+}
 
 ```
 
@@ -347,41 +349,42 @@ int_model <- readRDS("../saves/conf_int_model.rds")
 We also add a model that assumes a non-linear relation between age and performance. 
 
 ```{r}
-# quad_model <- brm(correct ~ delay + norm_age + I(norm_age^2) +
-#                     task_experience + cup_distance + board_size + trial +
-#                    (1 + delay + trial | subject_site + site + species),
-#                    data=data,
-#                    family=bernoulli(),
-#                    chains = 4,
-#                    iter= 5000,
-#                    cores= 4,
-#                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-#                            prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
-#                            prior(normal(0, 1), class=b, coef=board_size) +
-#                            prior(normal(0, 1), class=b, coef=trial) +
-#                            prior(normal(0, 1), class=b, coef=cup_distance) +
-#                            prior(normal(0, 1), class=b, coef=norm_age) +
-#                            prior(normal(0, 1), class=b, coef=Inorm_ageE2) +
-#                            prior(normal(0, 2), class=b, coef=task_experienceyes) +
-#                            prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
-#                            prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
-#                            prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
-#                            prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-#                            prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-#                            prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
-#                            prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
-#                            prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
-#                            prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
-#                            prior("lkj(1)", class = "cor")
-#                 )
-# 
-# summary(quad_model)
-# 
-# quad_model <- add_criterion(quad_model, c("loo", "waic"))
-# 
-# quad_model %>% saveRDS("../saves/conf_quad_model.rds")
+quad_model_filename <- "../saves/conf_quad_model.rds"
+if(file.exists(quad_model_filename)) {
+    quad_model <- readRDS(quad_model_filename)
+} else {
+    quad_model <- brm(correct ~ delay + norm_age + I(norm_age^2) +
+                      task_experience + cup_distance + board_size + trial +
+                     (1 + delay + trial | subject_site + site + species),
+                     data=data,
+                     family=bernoulli(),
+                     chains = 4,
+                     iter= 5000,
+                     cores= 4,
+                     prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
+                             prior(skew_normal(-1.4, 2, -3), class=b, coef=delay) +
+                             prior(normal(0, 1), class=b, coef=board_size) +
+                             prior(normal(0, 1), class=b, coef=trial) +
+                             prior(normal(0, 1), class=b, coef=cup_distance) +
+                             prior(normal(0, 1), class=b, coef=norm_age) +
+                             prior(normal(0, 1), class=b, coef=Inorm_ageE2) +
+                             prior(normal(0, 2), class=b, coef=task_experienceyes) +
+                             prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+                             prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+                             prior(normal(0, 1), class=sd, coef=Intercept, group=species) +
+                             prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
+                             prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
+                             prior(normal(0, 0.5), class=sd, coef=delay, group=species) +
+                             prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+                             prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+                             prior(normal(0, 0.5), class=sd, coef=trial, group=species) +
+                             prior("lkj(1)", class = "cor")
+                  )
 
-quad_model <- readRDS("../saves/conf_quad_model.rds")
+    summary(quad_model)
+    quad_model <- add_criterion(quad_model, c("loo", "waic"))
+    saveRDS(quad_model, quad_model_filename)
+}
 ```
 
 ## Model comparison
