@@ -409,17 +409,17 @@ if(!file.exists(model_comparison_exp_filename)) {
    criterion = c("loo"))%>%
    as_tibble(rownames = "model")
 
- weights_waic_exp <- model_weights(numeric_delay_model, int_model,quad_model, weights = "waic")%>%
+ weights_waic_exp <- model_weights(binary_delay_model, int_model,quad_model, weights = "waic")%>%
    as_tibble() %>%
    rename(waic_weight = value) %>%
-   mutate(model  = c("numeric_delay_model", "int_model","quad_model"),
+   mutate(model  = c("binary_delay_model", "int_model","quad_model"),
           waic_weight = waic_weight %>% round(digits = 4)) %>%
    select(model, waic_weight)
 
- weights_loo_exp <- model_weights(numeric_delay_model, int_model, quad_model, weights = "loo")%>%
+ weights_loo_exp <- model_weights(binary_delay_model, int_model, quad_model, weights = "loo")%>%
    as_tibble() %>%
    rename(loo_weight = value) %>%
-   mutate(model  = c("numeric_delay_model","int_model", "quad_model"),
+   mutate(model  = c("binary_delay_model","int_model", "quad_model"),
           loo_weight = loo_weight %>% round(digits = 4)) %>%
    select(model, loo_weight)
 
