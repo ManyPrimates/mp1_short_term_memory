@@ -322,7 +322,7 @@ if(file.exists(int_model_filename)) {
                              prior(normal(0, 1), class=b, coef=trial) +
                              prior(normal(0, 1), class=b, coef=cup_distance) +
                              prior(normal(0, 1), class=b, coef=norm_age) +
-                             prior(normal(0, 1), class=b, coef=`delay:norm_age`) +
+                             prior(normal(0, 1), class=b, coef=`binary_delay1:norm_age`) +
                              prior(normal(0, 2), class=b, coef=task_experienceyes) +
                              prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
                              prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
