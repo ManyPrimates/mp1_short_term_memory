@@ -308,6 +308,7 @@ int_model_filename <- "../saves/conf_int_model.rds"
 if(file.exists(int_model_filename)) {
     int_model <- readRDS(int_model_filename)
 } else {
+    data$binary_delay <- as.factor(as.integer(data$delay > -1))
     int_model <- brm(correct ~ binary_delay * norm_age +
                      task_experience + cup_distance + board_size + trial +
                      (1 + binary_delay + trial | subject_site + site + species),
@@ -353,6 +354,7 @@ quad_model_filename <- "../saves/conf_quad_model.rds"
 if(file.exists(quad_model_filename)) {
     quad_model <- readRDS(quad_model_filename)
 } else {
+    data$binary_delay <- as.factor(as.integer(data$delay > -1))
     quad_model <- brm(correct ~ binary_delay + norm_age + I(norm_age^2) +
                       task_experience + cup_distance + board_size + trial +
                      (1 + binary_delay + trial | subject_site + site + species),
