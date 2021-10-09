@@ -92,120 +92,120 @@ ggsave("../figures/phylo_correlations_predictors.png", width = 10, height = 10, 
 
 ```{r}
  base_model  <- readRDS("../saves/phylo_base_model.rds")  
-# diurnal_resting_model <- readRDS("../saves/phylo_diurnal_resting_model.rds")
-# color_vision_model <- readRDS("../saves/phylo_color_vision_model.rds")
-# home_range_feeding_budget_diet_breath_model <- readRDS("../saves/phylo_home_range_feeding_budget_diet_breath_model.rds")
+ diurnal_resting_model <- readRDS("../saves/phylo_diurnal_resting_model.rds")
+ color_vision_model <- readRDS("../saves/phylo_color_vision_model.rds")
+ home_range_feeding_budget_diet_breath_model <- readRDS("../saves/phylo_home_range_feeding_budget_diet_breath_model.rds")
  vocal_repertoire_model <- readRDS("../saves/phylo_vocal_repertoire_model.rds") 
  dietary_breadth_model <- readRDS("../saves/phylo_dietary_breadth_model.rds")
-# group_size_model <- readRDS("../saves/phylo_group_size_model.rds")
-# day_journey_group_size_model <- readRDS("../saves/phylo_day_journey_group_size_model.rds")
-# frugivory_terrestriality_model <- readRDS("../saves/phylo_frugivory_terrestriality_model.rds")
-# diet_diversity_model <- readRDS("../saves/phylo_diet_diversity_model.rds")
-# home_range_model <- readRDS("../saves/phylo_home_range_model.rds")
-# feeding_budget_model <- readRDS("../saves/phylo_feeding_budget_model.rds")
-# day_journey_model <- readRDS("../saves/phylo_day_journey_model.rds")
-# frugivory_model <- readRDS("../saves/phylo_frugivory_model.rds")
-# terrestriality_model <- readRDS("../saves/phylo_terrestriality_model.rds")
+ group_size_model <- readRDS("../saves/phylo_group_size_model.rds")
+ day_journey_group_size_model <- readRDS("../saves/phylo_day_journey_group_size_model.rds")
+ frugivory_terrestriality_model <- readRDS("../saves/phylo_frugivory_terrestriality_model.rds")
+ diet_diversity_model <- readRDS("../saves/phylo_diet_diversity_model.rds")
+ home_range_model <- readRDS("../saves/phylo_home_range_model.rds")
+ feeding_budget_model <- readRDS("../saves/phylo_feeding_budget_model.rds")
+ day_journey_model <- readRDS("../saves/phylo_day_journey_model.rds")
+ frugivory_model <- readRDS("../saves/phylo_frugivory_model.rds")
+ terrestriality_model <- readRDS("../saves/phylo_terrestriality_model.rds")
 
 ```
 
 ## Models submitted to modelling challenge
 
 ```{r}
-# # Compute WAIC scores and SE
-# comp_waic <-  loo_compare(
-#   base_model,
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model,
-#   criterion = "waic")%>%
-#   as_tibble(rownames = "model")
-# 
-# # Compute LOO scores and SE
-# comp_loo <-  loo_compare(
-#   base_model,
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model,
-#   criterion = "loo")%>%
-#   as_tibble(rownames = "model")
-# 
-# 
-# # Compute WAIC weights
-# weights_waic <- model_weights(
-#   base_model,
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model, weights = "waic")%>%
-#   as_tibble() %>%
-#   rename(waic_weight = value) %>%
-#   mutate(model  = c("base_model",
-#                     "diurnal_resting_model",
-#                     "color_vision_model",
-#                     "home_range_feeding_budget_diet_breath_model",
-#                     "vocal_repertoire_model",
-#                     "dietary_breadth_model",
-#                     "group_size_model",
-#                     "day_journey_group_size_model",
-#                     "frugivory_terrestriality_model",
-#                     "diet_diversity_model"),
-#          waic_weight = waic_weight %>% round(digits = 2)) %>%
-#   select(model, waic_weight)
-# 
-# # Compute LOO weights
-# weights_loo <- model_weights(
-#   base_model,
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model, weights = "loo")%>%
-#   as_tibble() %>%
-#   rename(loo_weight = value) %>%
-#   mutate(model  = c("base_model",
-#                     "diurnal_resting_model",
-#                     "color_vision_model",
-#                     "home_range_feeding_budget_diet_breath_model",
-#                     "vocal_repertoire_model",
-#                     "dietary_breadth_model",
-#                     "group_size_model",
-#                     "day_journey_group_size_model",
-#                     "frugivory_terrestriality_model",
-#                     "diet_diversity_model"),
-#          loo_weight = loo_weight %>% round(digits = 2)) %>%
-#   select(model, loo_weight)
-# 
-# 
-# # Combine weights and scores
-# model_comparison <- comp_waic %>% select(model,waic, se_waic)%>%
-#   left_join(weights_waic)%>%
-#   left_join(comp_loo%>% select(model,looic, se_looic))%>%
-#   left_join(weights_loo)%>%
-#   arrange(desc(waic_weight))
-# 
-# write_csv(model_comparison, "../saves/phylogenetic_model_comparison.csv")
+# Compute WAIC scores and SE
+comp_waic <-  loo_compare(
+  base_model,
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+  criterion = "waic")%>%
+  as_tibble(rownames = "model")
+
+# Compute LOO scores and SE
+comp_loo <-  loo_compare(
+  base_model,
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+  criterion = "loo")%>%
+  as_tibble(rownames = "model")
+
+
+# Compute WAIC weights
+weights_waic <- model_weights(
+  base_model,
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model, weights = "waic")%>%
+  as_tibble() %>%
+  rename(waic_weight = value) %>%
+  mutate(model  = c("base_model",
+                    "diurnal_resting_model",
+                    "color_vision_model",
+                    "home_range_feeding_budget_diet_breath_model",
+                    "vocal_repertoire_model",
+                    "dietary_breadth_model",
+                    "group_size_model",
+                    "day_journey_group_size_model",
+                    "frugivory_terrestriality_model",
+                    "diet_diversity_model"),
+         waic_weight = waic_weight %>% round(digits = 2)) %>%
+  select(model, waic_weight)
+
+# Compute LOO weights
+weights_loo <- model_weights(
+  base_model,
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model, weights = "loo")%>%
+  as_tibble() %>%
+  rename(loo_weight = value) %>%
+  mutate(model  = c("base_model",
+                    "diurnal_resting_model",
+                    "color_vision_model",
+                    "home_range_feeding_budget_diet_breath_model",
+                    "vocal_repertoire_model",
+                    "dietary_breadth_model",
+                    "group_size_model",
+                    "day_journey_group_size_model",
+                    "frugivory_terrestriality_model",
+                    "diet_diversity_model"),
+         loo_weight = loo_weight %>% round(digits = 2)) %>%
+  select(model, loo_weight)
+
+
+# Combine weights and scores
+model_comparison <- comp_waic %>% select(model,waic, se_waic)%>%
+  left_join(weights_waic)%>%
+  left_join(comp_loo%>% select(model,looic, se_looic))%>%
+  left_join(weights_loo)%>%
+  arrange(desc(waic_weight))
+
+write_csv(model_comparison, "../saves/phylogenetic_model_comparison.csv")
 
 model_comparison <- read_csv("../saves/phylogenetic_model_comparison.csv")
 
@@ -217,135 +217,135 @@ Some models were submitted with interaction terms between variables. The additio
 
 ```{r}
 # Compute WAIC scores and SE
-# comp_exp_waic <-  loo_compare(
-#   base_model,    # models from modelling challnege
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model,
-# 
-#   home_range_model,      # main effects models
-#   feeding_budget_model,
-#   day_journey_model,
-#   frugivory_model,
-#   terrestriality_model,
-# 
-#   criterion = "waic")%>%
-#   as_tibble(rownames = "model")
-# 
-# # Compute LOO scores and SE
-# comp_exp_loo <-  loo_compare(
-#   base_model,    # models from modelling challnege
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model,
-# 
-#   home_range_model,      # main effects models
-#   feeding_budget_model,
-#   day_journey_model,
-#   frugivory_model,
-#   terrestriality_model,
-# 
-#   criterion = "loo")%>%
-#   as_tibble(rownames = "model")
-# 
-# # Compute WAIC weights
-# weights_exp_waic <- model_weights(
-#   base_model,
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model,
-#   home_range_model,
-#   feeding_budget_model,
-#   day_journey_model,
-#   frugivory_model,
-#   terrestriality_model,
-#   weights = "waic")%>%
-#   as_tibble() %>%
-#   rename(waic_weight = value) %>%
-#   mutate(model  = c("base_model",
-#                     "diurnal_resting_model",
-#                     "color_vision_model",
-#                     "home_range_feeding_budget_diet_breath_model",
-#                     "vocal_repertoire_model",
-#                     "dietary_breadth_model",
-#                     "group_size_model",
-#                     "day_journey_group_size_model",
-#                     "frugivory_terrestriality_model",
-#                     "diet_diversity_model",
-#                     "home_range_model",
-#                     "feeding_budget_model",
-#                     "day_journey_model",
-#                     "frugivory_model",
-#                     "terrestriality_model"),
-#          waic_weight = waic_weight %>% round(digits = 2)) %>%
-#   select(model, waic_weight)
-# 
-# # Compute LOO weights
-# weights_exp_loo <- model_weights(
-#   base_model,
-#   diurnal_resting_model,
-#   color_vision_model,
-#   home_range_feeding_budget_diet_breath_model,
-#   vocal_repertoire_model,
-#   dietary_breadth_model,
-#   group_size_model,
-#   day_journey_group_size_model,
-#   frugivory_terrestriality_model,
-#   diet_diversity_model,
-#   home_range_model,
-#   feeding_budget_model,
-#   day_journey_model,
-#   frugivory_model,
-#   terrestriality_model,
-#   weights = "loo")%>%
-#   as_tibble() %>%
-#   rename(loo_weight = value) %>%
-#   mutate(model  = c("base_model",
-#                     "diurnal_resting_model",
-#                     "color_vision_model",
-#                     "home_range_feeding_budget_diet_breath_model",
-#                     "vocal_repertoire_model",
-#                     "dietary_breadth_model",
-#                     "group_size_model",
-#                     "day_journey_group_size_model",
-#                     "frugivory_terrestriality_model",
-#                     "diet_diversity_model",
-#                     "home_range_model",
-#                     "feeding_budget_model",
-#                     "day_journey_model",
-#                     "frugivory_model",
-#                     "terrestriality_model"),
-#          loo_weight = loo_weight %>% round(digits = 2)) %>%
-#   select(model, loo_weight)
-# 
-# 
-# 
-# # Combine weights and scores
-# model_comparison_exp <- comp_exp_waic %>% select(model,waic, se_waic)%>%
-#   left_join(weights_exp_waic)%>%
-#   left_join(comp_exp_loo%>% select(model,looic, se_looic))%>%
-#   left_join(weights_exp_loo)%>%
-#   arrange(desc(waic_weight))
-# 
-# write_csv(model_comparison_exp, "../saves/phylogenetic_model_comparison_exploratory.csv")
+comp_exp_waic <-  loo_compare(
+  base_model,    # models from modelling challnege
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+
+  home_range_model,      # main effects models
+  feeding_budget_model,
+  day_journey_model,
+  frugivory_model,
+  terrestriality_model,
+
+  criterion = "waic")%>%
+  as_tibble(rownames = "model")
+
+# Compute LOO scores and SE
+comp_exp_loo <-  loo_compare(
+  base_model,    # models from modelling challnege
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+
+  home_range_model,      # main effects models
+  feeding_budget_model,
+  day_journey_model,
+  frugivory_model,
+  terrestriality_model,
+
+  criterion = "loo")%>%
+  as_tibble(rownames = "model")
+
+# Compute WAIC weights
+weights_exp_waic <- model_weights(
+  base_model,
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+  home_range_model,
+  feeding_budget_model,
+  day_journey_model,
+  frugivory_model,
+  terrestriality_model,
+  weights = "waic")%>%
+  as_tibble() %>%
+  rename(waic_weight = value) %>%
+  mutate(model  = c("base_model",
+                    "diurnal_resting_model",
+                    "color_vision_model",
+                    "home_range_feeding_budget_diet_breath_model",
+                    "vocal_repertoire_model",
+                    "dietary_breadth_model",
+                    "group_size_model",
+                    "day_journey_group_size_model",
+                    "frugivory_terrestriality_model",
+                    "diet_diversity_model",
+                    "home_range_model",
+                    "feeding_budget_model",
+                    "day_journey_model",
+                    "frugivory_model",
+                    "terrestriality_model"),
+         waic_weight = waic_weight %>% round(digits = 2)) %>%
+  select(model, waic_weight)
+
+# Compute LOO weights
+weights_exp_loo <- model_weights(
+  base_model,
+  diurnal_resting_model,
+  color_vision_model,
+  home_range_feeding_budget_diet_breath_model,
+  vocal_repertoire_model,
+  dietary_breadth_model,
+  group_size_model,
+  day_journey_group_size_model,
+  frugivory_terrestriality_model,
+  diet_diversity_model,
+  home_range_model,
+  feeding_budget_model,
+  day_journey_model,
+  frugivory_model,
+  terrestriality_model,
+  weights = "loo")%>%
+  as_tibble() %>%
+  rename(loo_weight = value) %>%
+  mutate(model  = c("base_model",
+                    "diurnal_resting_model",
+                    "color_vision_model",
+                    "home_range_feeding_budget_diet_breath_model",
+                    "vocal_repertoire_model",
+                    "dietary_breadth_model",
+                    "group_size_model",
+                    "day_journey_group_size_model",
+                    "frugivory_terrestriality_model",
+                    "diet_diversity_model",
+                    "home_range_model",
+                    "feeding_budget_model",
+                    "day_journey_model",
+                    "frugivory_model",
+                    "terrestriality_model"),
+         loo_weight = loo_weight %>% round(digits = 2)) %>%
+  select(model, loo_weight)
+
+
+
+# Combine weights and scores
+model_comparison_exp <- comp_exp_waic %>% select(model,waic, se_waic)%>%
+  left_join(weights_exp_waic)%>%
+  left_join(comp_exp_loo%>% select(model,looic, se_looic))%>%
+  left_join(weights_exp_loo)%>%
+  arrange(desc(waic_weight))
+
+write_csv(model_comparison_exp, "../saves/phylogenetic_model_comparison_exploratory.csv")
 
 model_comparison_exp <- read_csv("../saves/phylogenetic_model_comparison_exploratory.csv")
 
@@ -368,46 +368,46 @@ no_phylogeny_model <- readRDS("../saves/phylo_no_phylogeny_model.rds")
 ### Model comparison 
 
 ```{r}
-# phylo_comp_waic <-  loo_compare(
-#   base_model,
-#   no_phylogeny_model,
-#   criterion = c("waic"))%>%
-#   as_tibble(rownames = "model")
-# 
-# phylo_comp_loo <-  loo_compare(
-#   base_model,
-#   no_phylogeny_model,
-#   criterion = c("loo"))%>%
-#   as_tibble(rownames = "model")
-# 
-# phylo_weights_waic <- model_weights(
-#   base_model,
-#   no_phylogeny_model,
-#   weights = "waic")%>%
-#   as_tibble() %>%
-#   rename(waic_weight = value) %>%
-#   mutate(model  = c("base_model", "no_phylogeny_model"),
-#          waic_weight = waic_weight %>% round(digits = 4)) %>%
-#   select(model, waic_weight)
-# 
-# phylo_weights_loo <- model_weights(
-#   base_model,
-#   no_phylogeny_model,
-#   weights = "loo")%>%
-#   as_tibble() %>%
-#   rename(loo_weight = value) %>%
-#   mutate(model  = c("base_model", "no_phylogeny_model"),
-#          loo_weight = loo_weight %>% round(digits = 4)) %>%
-#   select(model, loo_weight)
-# 
-# # Combine weights and scores
-# phylo_model_comparison <- phylo_comp_waic %>%select(model,waic, se_waic)%>%
-#   left_join(phylo_weights_waic)%>%
-#   left_join(phylo_comp_loo %>%select(model,looic, se_looic))%>%
-#   left_join(phylo_weights_loo)%>%
-#   arrange(desc(waic_weight))
-# 
-# write_csv(phylo_model_comparison, "../saves/phylogenetic_model_comparison_phylogeny.csv")
+phylo_comp_waic <-  loo_compare(
+  base_model,
+  no_phylogeny_model,
+  criterion = c("waic"))%>%
+  as_tibble(rownames = "model")
+
+phylo_comp_loo <-  loo_compare(
+  base_model,
+  no_phylogeny_model,
+  criterion = c("loo"))%>%
+  as_tibble(rownames = "model")
+
+phylo_weights_waic <- model_weights(
+  base_model,
+  no_phylogeny_model,
+  weights = "waic")%>%
+  as_tibble() %>%
+  rename(waic_weight = value) %>%
+  mutate(model  = c("base_model", "no_phylogeny_model"),
+         waic_weight = waic_weight %>% round(digits = 4)) %>%
+  select(model, waic_weight)
+
+phylo_weights_loo <- model_weights(
+  base_model,
+  no_phylogeny_model,
+  weights = "loo")%>%
+  as_tibble() %>%
+  rename(loo_weight = value) %>%
+  mutate(model  = c("base_model", "no_phylogeny_model"),
+         loo_weight = loo_weight %>% round(digits = 4)) %>%
+  select(model, loo_weight)
+
+# Combine weights and scores
+phylo_model_comparison <- phylo_comp_waic %>%select(model,waic, se_waic)%>%
+  left_join(phylo_weights_waic)%>%
+  left_join(phylo_comp_loo %>%select(model,looic, se_looic))%>%
+  left_join(phylo_weights_loo)%>%
+  arrange(desc(waic_weight))
+
+write_csv(phylo_model_comparison, "../saves/phylogenetic_model_comparison_phylogeny.csv")
 
 phylo_model_comparison <- read_csv("../saves/phylogenetic_model_comparison_phylogeny.csv")
 
@@ -418,18 +418,18 @@ phylo_model_comparison <- read_csv("../saves/phylogenetic_model_comparison_phylo
 ## Posterior distributions for predictors
 ```{r}
 model_draws <-  bind_rows(
-  vocal_repertoire_model%>% posterior_samples(pars = c("b_delay","b_vocal_repertoire","b_delay:vocal_repertoire"))%>%
-    rename(delay = b_delay,
+  vocal_repertoire_model%>% posterior_samples(pars = c("b_delay1","b_vocal_repertoire","b_delay1:vocal_repertoire"))%>%
+    rename(delay = b_delay1,
            predictor = b_vocal_repertoire,
-           interaction = `b_delay:vocal_repertoire`)%>%
+           interaction = `b_delay1:vocal_repertoire`)%>%
     mutate(model= "vocal_repertoire"),
-  dietary_breadth_model%>% posterior_samples(pars = c("b_delay","b_dietary_breadth","b_delay:dietary_breadth"))%>%
-    rename(delay = b_delay,
+  dietary_breadth_model%>% posterior_samples(pars = c("b_delay1","b_dietary_breadth","b_delay1:dietary_breadth"))%>%
+    rename(delay = b_delay1,
            predictor = b_dietary_breadth,
-           interaction = `b_delay:dietary_breadth`)%>%
+           interaction = `b_delay1:dietary_breadth`)%>%
     mutate(model= "dietary_breadth"),
-  base_model%>% posterior_samples(pars = c("b_delay"))%>%
-    rename(delay = b_delay)%>%
+  base_model%>% posterior_samples(pars = c("b_delay1"))%>%
+    rename(delay = b_delay1)%>%
     mutate(model= "baseline")
 )%>%
   pivot_longer(names_to = "estimate", values_to = "value", cols = c(delay,predictor,interaction ))
@@ -456,12 +456,12 @@ model_draws %>%
 
 model_pred <-  bind_rows(
   vocal_repertoire_model%>% 
-  posterior_samples(pars = c("b_Intercept","b_delay","b_vocal_repertoire","b_delay:vocal_repertoire"), subset = runif(1000, 0, 20000))%>%
+  posterior_samples(pars = c("b_Intercept","b_delay1","b_vocal_repertoire","b_delay1:vocal_repertoire"), subset = runif(1000, 0, 20000))%>%
   rownames_to_column(var = "iteration")%>%
   rename(intercept = b_Intercept, 
-         delay = b_delay,
+         delay = b_delay1,
          main_effect = b_vocal_repertoire,
-         interaction = `b_delay:vocal_repertoire`)%>%
+         interaction = `b_delay1:vocal_repertoire`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
   mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
          medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
@@ -473,12 +473,12 @@ model_pred <-  bind_rows(
          model= "vocal_repertoire"),
   
   dietary_breadth_model%>% 
-  posterior_samples(pars = c("b_Intercept","b_delay","b_dietary_breadth","b_delay:dietary_breadth"), subset = runif(1000, 0, 20000))%>%
+  posterior_samples(pars = c("b_Intercept","b_delay1","b_dietary_breadth","b_delay1:dietary_breadth"), subset = runif(1000, 0, 20000))%>%
   rownames_to_column(var = "iteration")%>%
   rename(intercept = b_Intercept, 
-         delay = b_delay,
+         delay = b_delay1,
          main_effect = b_dietary_breadth,
-         interaction = `b_delay:dietary_breadth`)%>%
+         interaction = `b_delay1:dietary_breadth`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
   mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
          medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
@@ -497,9 +497,9 @@ model_pred_map <- bind_rows(
   select(var, Estimate)%>%
   pivot_wider(names_from = var, values_from = Estimate)%>%
   rename(intercept = Intercept, 
-         delay = delay,
+         delay = delay1,
          main_effect = vocal_repertoire,
-         interaction = `delay:vocal_repertoire`)%>%
+         interaction = `delay1:vocal_repertoire`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
   mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
          medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
@@ -515,9 +515,9 @@ model_pred_map <- bind_rows(
   select(var, Estimate)%>%
   pivot_wider(names_from = var, values_from = Estimate)%>%
   rename(intercept = Intercept, 
-         delay = delay,
+         delay = delay1,
          main_effect = dietary_breadth,
-         interaction = `delay:dietary_breadth`)%>%
+         interaction = `delay1:dietary_breadth`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
   mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
          medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
