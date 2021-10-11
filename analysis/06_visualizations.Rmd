@@ -231,30 +231,27 @@ im <- ggplot() + background_image(img1) +
 # Confirmatory results
 
 ```{r}
-conf_model <- readRDS("../saves/conf_factor_delay_model.rds")
-```
+#conf_model <- readRDS("../saves/conf_factor_delay_model.rds")
 
-```{r}
 # model_draws <- conf_model%>% posterior_samples(pars = c("b_factor_delayM1","b_factor_delay1", "b_task_experienceyes", "b_norm_age", "b_cup_distance", "b_board_size", "b_trial"))%>%
 #     mutate(model= "baseline")%>%
 #   pivot_longer(names_to = "estimate", values_to = "value", cols = c(b_factor_delayM1,b_factor_delay1,b_task_experienceyes,b_norm_age, b_cup_distance, b_board_size, b_trial ))%>%
 #   mutate(estimate = str_remove(estimate,"b_"))
-# 
-# model_plot <- model_draws%>%
-#   mutate(facet = ifelse(grepl("delay", estimate), "Delay", 
-#                         ifelse(estimate == "norm_age" | estimate == "trial" | estimate == "task_experienceyes", "Experience", "Implementation")))%>%
-#     mutate(estimate = recode(estimate, 
-#                            factor_delayM1 = "Short delay (0s)",
-#                            factor_delay1 = "Long delay (30s)",
-#                            task_experienceyes = "Task experience (yes)",
-#                            norm_age = "Age (normed)",
-#                            board_size = "Board size",
-#                            cup_distance = "Cup distance",
-#                            trial = "Trial"))
-# 
-# saveRDS(model_draws, "../saves/conf_model_draws.rds")
+# saveRDS(model_draws, "../figures/conf_model_draws.rds")
 
-model_draws <- readRDS("../saves/conf_model_draws.rds")
+model_draws <- readRDS("../figures/conf_model_draws.rds")
+
+model_plot <- model_draws%>%
+  mutate(facet = ifelse(grepl("delay", estimate), "Delay",
+                        ifelse(estimate == "norm_age" | estimate == "trial" | estimate == "task_experienceyes", "Experience", "Implementation")))%>%
+    mutate(estimate = recode(estimate,
+                           factor_delayM1 = "Short delay (0s)",
+                           factor_delay1 = "Long delay (30s)",
+                           task_experienceyes = "Task experience (yes)",
+                           norm_age = "Age (normed)",
+                           board_size = "Board size",
+                           cup_distance = "Cup distance",
+                           trial = "Trial"))
 
 # model_fix <- fixef(conf_model)%>%as_tibble(rownames = "estimate")%>%
 #   filter(estimate != "Intercept")%>%
@@ -269,15 +266,15 @@ model_draws <- readRDS("../saves/conf_model_draws.rds")
 #                            cup_distance = "Cup distance",
 #                            trial = "Trial"))
 # 
-# saveRDS(model_fix, "../saves/conf_model_fixed.rds")
+# saveRDS(model_fix, "../figures/conf_model_fixed.rds")
 
-model_fix <- readRDS("../saves/conf_model_fixed.rds")
+model_fix <- readRDS("../figures/conf_model_fixed.rds")
 
 
 conf_plot <- model_plot %>%
   ggplot(.,aes(x = value, y= estimate))+
   geom_pointrange(data = model_fix, aes(x = Estimate, y= estimate, xmin = Q2.5, xmax = Q97.5))+
-  geom_vline(xintercept = 0, lty = 2)+
+  geom_vline(xintercept = 0, lty = 2, alpha = .75)+
   stat_density_ridges(
     geom = "density_ridges_gradient",
     aes(fill = factor(stat(quantile))),
@@ -288,7 +285,7 @@ conf_plot <- model_plot %>%
   geom_pointrange(data = model_fix, aes(x = Estimate, xmin = Q2.5, xmax = Q97.5))+
   theme_minimal() +
   scale_fill_manual(
-   values = c("firebrick", "lightgrey", "firebrick")
+   values = c("firebrick", "#A0A0A0A0", "firebrick")
   )+
   facet_wrap(~facet, scales = "free_y")+
   guides(fill = F)+
