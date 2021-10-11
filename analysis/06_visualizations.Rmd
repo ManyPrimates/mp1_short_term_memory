@@ -166,7 +166,7 @@ tp <- ggtree(tree2) +
 #tp+ geom_text(aes(label = node, x = branch), size = 2, col = "blue", vjust = -.5)
 
 facet_plot(tp, panel ="Performance", data = d1, geom = geom_pointrange, 
-            mapping =  aes(x = mean, xmin = ci_lower, xmax = ci_upper, group = label, col = condition, pch = condition),
+            mapping =  aes(x = mean, xmin = ci_lower, xmax = ci_upper, col = condition, pch = condition),
              alpha = .75, lwd = .3, position= position_dodge2v(height = .5))+
   scale_color_colorblind(name = "Delay")+
   scale_shape(name = "Delay")+
