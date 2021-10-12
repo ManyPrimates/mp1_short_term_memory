@@ -94,8 +94,7 @@ phylo_data %>%
 
 ```{r}
 phylo_data <- phylo_data %>%
-  mutate(delay = if_else(condition == "short", -1,
-                         if_else(condition == "medium", 0, 1)),
+  mutate(delay = as.factor(as.integer(condition != "short")),
          trial = scale(trial, center = T, scale = T))
 ```
 
@@ -130,13 +129,13 @@ priors <- list()
 model_name <- "base_model"
 formulas[[model_name]] <- correct ~ delay + (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                        prior(skew_normal(-1.4, 2, 3), coef=delay) +
+                        prior(skew_normal(-1.4, 2, -3), coef=delay1) +
                         prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
                         prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
                         prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                        prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                        prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                        prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
+                        prior(normal(0, 0.5), class=sd, coef=delay1, group=subject_site) +
+                        prior(normal(0, 0.5), class=sd, coef=delay1, group=site) +
+                        prior(normal(0, 0.5), class=sd, coef=delay1, group=species_english) +
                         prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
                         prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
                         prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
@@ -152,7 +151,7 @@ model_name <- "diurnal_resting_model"
 formulas[[model_name]] <- correct ~ delay * resting_time_percent_activitybudget +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=resting_time_percent_activitybudget) +
-                        prior(normal(0, 1), coef=`delay:resting_time_percent_activitybudget`)
+                        prior(normal(0, 1), coef=`delay1:resting_time_percent_activitybudget`)
 ```
 
 ## Model 2: Color vision
@@ -165,8 +164,8 @@ formulas[[model_name]] <- correct ~ delay * color_vision +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 2), coef=color_visionpolymorphic) +
                         prior(normal(0, 2), coef=color_visiontrichromatic) +
-                        prior(normal(0, 2), coef=`delay:color_visionpolymorphic`) +
-                        prior(normal(0, 2), coef=`delay:color_visiontrichromatic`)
+                        prior(normal(0, 2), coef=`delay1:color_visionpolymorphic`) +
+                        prior(normal(0, 2), coef=`delay1:color_visiontrichromatic`)
 ```
 
 ## Model 3: Home_range/body size ratio, time spent feeding and range of consumed food items
@@ -178,10 +177,10 @@ model_name <- "home_range_feeding_budget_diet_breath_model"
 formulas[[model_name]] <- correct ~ delay * home_range_body_site_ratio + delay * feeding_budget * dietary_breadth +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=home_range_body_site_ratio) +
-                        prior(normal(0, 1), coef=`delay:dietary_breadth`) +
-                        prior(normal(0, 1), coef=`delay:home_range_body_site_ratio`) +
-                        prior(normal(0, 1), coef=`delay:feeding_budget`) +
-                        prior(normal(0, 1), coef=`delay:feeding_budget:dietary_breadth`) +
+                        prior(normal(0, 1), coef=`delay1:dietary_breadth`) +
+                        prior(normal(0, 1), coef=`delay1:home_range_body_site_ratio`) +
+                        prior(normal(0, 1), coef=`delay1:feeding_budget`) +
+                        prior(normal(0, 1), coef=`delay1:feeding_budget:dietary_breadth`) +
                         prior(normal(0, 1), coef=dietary_breadth) +
                         prior(normal(0, 1), coef=feeding_budget) +
                         prior(normal(0, 1), coef=`feeding_budget:dietary_breadth`)
@@ -196,7 +195,7 @@ model_name <- "home_range_model"
 formulas[[model_name]] <- correct ~ delay * home_range +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=home_range) +
-                        prior(normal(0, 1), coef=`delay:home_range`)
+                        prior(normal(0, 1), coef=`delay1:home_range`)
 ```
 
 ## Model 3b: Feeding budget
@@ -208,7 +207,7 @@ model_name <- "feeding_budget_model"
 formulas[[model_name]] <- correct ~ delay * feeding_budget +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=feeding_budget) +
-                        prior(normal(0, 1), coef=`delay:feeding_budget`)
+                        prior(normal(0, 1), coef=`delay1:feeding_budget`)
 ```
 
 ## Model 4: Vocal repertoire
@@ -220,7 +219,7 @@ model_name <- "vocal_repertoire_model"
 formulas[[model_name]] <- correct ~ delay * vocal_repertoire +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=vocal_repertoire) +
-                        prior(normal(0, 1), coef=`delay:vocal_repertoire`)
+                        prior(normal(0, 1), coef=`delay1:vocal_repertoire`)
 ```
 
 ## Model 5: Dietary breath
@@ -232,7 +231,7 @@ model_name <- "dietary_breadth_model"
 formulas[[model_name]] <- correct ~ delay * dietary_breadth +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=dietary_breadth) +
-                        prior(normal(0, 1), coef=`delay:dietary_breadth`)
+                        prior(normal(0, 1), coef=`delay1:dietary_breadth`)
 ```
 
 ## Model 6: Group size
@@ -244,7 +243,7 @@ model_name <- "group_size_model"
 formulas[[model_name]] <- correct ~ delay * group_size +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=group_size) +
-                        prior(normal(0, 1), coef=`delay:group_size`)
+                        prior(normal(0, 1), coef=`delay1:group_size`)
 ```
 
 ## Model 7: Day journey length and group size
@@ -258,9 +257,9 @@ formulas[[model_name]] <- correct ~ delay * day_journey_length * group_size +
 priors[[model_name]] <- prior(normal(0, 1), coef=group_size) +
                         prior(normal(0, 1), coef=day_journey_length) +
                         prior(normal(0, 1), coef=`day_journey_length:group_size`) +
-                        prior(normal(0, 1), coef=`delay:group_size`) +
-                        prior(normal(0, 1), coef=`delay:day_journey_length`) +
-                        prior(normal(0, 1), coef=`delay:day_journey_length:group_size`)
+                        prior(normal(0, 1), coef=`delay1:group_size`) +
+                        prior(normal(0, 1), coef=`delay1:day_journey_length`) +
+                        prior(normal(0, 1), coef=`delay1:day_journey_length:group_size`)
 ```
 
 ## Model 7a: Day journey length
@@ -272,7 +271,7 @@ model_name <- "day_journey_model"
 formulas[[model_name]] <- correct ~ delay * day_journey_length +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=day_journey_length) +
-                        prior(normal(0, 1), coef=`delay:day_journey_length`)
+                        prior(normal(0, 1), coef=`delay1:day_journey_length`)
 ```
 
 ## Model 8: Percent frugivory and terrestriality
@@ -286,9 +285,9 @@ formulas[[model_name]] <- correct ~ delay * percent_frugivory * terrestriality +
 priors[[model_name]] <- prior(normal(0, 2), coef=terrestrialityterrestrial) +
                         prior(normal(0, 1), coef=percent_frugivory) +
                         prior(normal(0, 2), coef=`percent_frugivory:terrestrialityterrestrial`) +
-                        prior(normal(0, 2), coef=`delay:terrestrialityterrestrial`) +
-                        prior(normal(0, 1), coef=`delay:percent_frugivory`) +
-                        prior(normal(0, 2), coef=`delay:percent_frugivory:terrestrialityterrestrial`)
+                        prior(normal(0, 2), coef=`delay1:terrestrialityterrestrial`) +
+                        prior(normal(0, 1), coef=`delay1:percent_frugivory`) +
+                        prior(normal(0, 2), coef=`delay1:percent_frugivory:terrestrialityterrestrial`)
 ```
 
 ## Model 8a: Percent frugivory
@@ -300,7 +299,7 @@ model_name <- "frugivory_model"
 formulas[[model_name]] <- correct ~ delay * percent_frugivory +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 1), coef=percent_frugivory) +
-                        prior(normal(0, 1), coef=`delay:percent_frugivory`)
+                        prior(normal(0, 1), coef=`delay1:percent_frugivory`)
 ```
 
 ## Model 8b: Terrestriality
@@ -312,7 +311,7 @@ model_name <- "terrestriality_model"
 formulas[[model_name]] <- correct ~ delay * terrestriality +
                           (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
 priors[[model_name]] <- prior(normal(0, 2), coef=terrestrialityterrestrial) +
-                        prior(normal(0, 2), coef=`delay:terrestrialityterrestrial`)
+                        prior(normal(0, 2), coef=`delay1:terrestrialityterrestrial`)
 ```
 
 ## Model 9: Diet diversity
@@ -328,11 +327,11 @@ priors[[model_name]] <- prior(normal(0, 2), coef=diet_diversityfolivore_frugivor
                         prior(normal(0, 2), coef=diet_diversitygummivore) +
                         prior(normal(0, 2), coef=diet_diversityinsectivore_frugivore) +
                         prior(normal(0, 2), coef=diet_diversityomnivore) +
-                        prior(normal(0, 2), coef=`delay:diet_diversityfolivore_frugivore`) +
-                        prior(normal(0, 2), coef=`delay:diet_diversityfrugivore`) +
-                        prior(normal(0, 2), coef=`delay:diet_diversitygummivore`) +
-                        prior(normal(0, 2), coef=`delay:diet_diversityinsectivore_frugivore`) +
-                        prior(normal(0, 2), coef=`delay:diet_diversityomnivore`)
+                        prior(normal(0, 2), coef=`delay1:diet_diversityfolivore_frugivore`) +
+                        prior(normal(0, 2), coef=`delay1:diet_diversityfrugivore`) +
+                        prior(normal(0, 2), coef=`delay1:diet_diversitygummivore`) +
+                        prior(normal(0, 2), coef=`delay1:diet_diversityinsectivore_frugivore`) +
+                        prior(normal(0, 2), coef=`delay1:diet_diversityomnivore`)
 ```
 
 ## Run all models in parallel
@@ -404,13 +403,13 @@ no_phylogeny_model <- brm(correct ~ delay +
                    iter= 5000,
                    cores= 8,
                    prior = prior(skew_normal(0, 1.5, 3), class=Intercept) +
-                           prior(skew_normal(-1.4, 2, 3), class=b, coef=delay) +
+                           prior(skew_normal(-1.4, 2, -3), class=b, coef=delay1) +
                            prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
                            prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
                            prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=subject_site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=site) +
-                           prior(normal(0, 0.5), class=sd, coef=delay, group=species_english) +
+                           prior(normal(0, 0.5), class=sd, coef=delay1, group=subject_site) +
+                           prior(normal(0, 0.5), class=sd, coef=delay1, group=site) +
+                           prior(normal(0, 0.5), class=sd, coef=delay1, group=species_english) +
                            prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
                            prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
                            prior(normal(0, 0.5), class=sd, coef=trial, group=species_english) +
