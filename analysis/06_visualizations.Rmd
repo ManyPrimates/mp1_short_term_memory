@@ -1,0 +1,314 @@
+---
+title: "ManyPrimates1_Visualizations"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ape)
+library(tidyverse)
+library(readxl)
+library(tidyverse)
+library(gridExtra)
+library(cowplot)
+library(viridis)
+library(ggridges)
+library(ggstance)
+library(treeio)
+library(ggtree)
+library(tidytree)
+library(maps)
+library(ggpubr)
+library(png)
+library(tidyboot)
+library(ggthemes)
+library(brms)
+
+```
+
+```{r}
+species_data <- read_xlsx("../data/species_predictors.xlsx", sheet = 1)%>%
+  mutate_all(., .funs = tolower)%>%
+  select(-contains("Source"), -contains("Comments"))%>%# remove columns with sources and comments
+  rename(vocal_repertoire = `vocal_repertoire (# vocalization types)`,
+         body_size = `body_size (kg)`)%>%
+  mutate_if(is.character, tolower)%>%
+#  filter(species_english != "allens_swamp_monkey",
+ #        species_english != "hamlyns_monkey") %>%
+  mutate(vocal_repertoire = as.numeric(vocal_repertoire),
+         group_size = as.numeric(group_size),
+         home_range = as.numeric(home_range),
+         feeding_budget = as.numeric(feeding_budget),
+         day_journey_length= as.numeric(day_journey_length),
+         resting_time_percent_activitybudget= as.numeric(resting_time_percent_activitybudget),
+         feeding_budget= as.numeric(feeding_budget),
+         dietary_breadth= as.numeric(dietary_breadth),
+         percent_frugivory= as.numeric(percent_frugivory),
+         body_size= as.numeric(body_size),
+         home_range_body_site_ratio = home_range/body_size)%>%
+  mutate(resting_time_percent_activitybudget = scale(resting_time_percent_activitybudget, center = T, scale = T),
+         home_range_body_site_ratio = scale(home_range_body_site_ratio, center = T, scale = T),
+         home_range = scale(home_range, center = T, scale = T),
+         feeding_budget = scale(feeding_budget, center = T, scale = T),
+         dietary_breadth = scale(dietary_breadth, center = T, scale = T),
+         vocal_repertoire = scale(vocal_repertoire, center = T, scale = T),
+         group_size = scale(group_size, center = T, scale = T),
+         day_journey_length = scale(day_journey_length, center = T, scale = T),
+         percent_frugivory = scale(percent_frugivory, center = T, scale = T),
+         feeding_budget = scale(feeding_budget, center = T, scale =T))
+
+data <- read_csv("../data/merged_data/ManyPrimates_mp1_merged_data.csv")%>%
+  left_join(species_data%>%select(species_latin, species_english, superordinate_group)%>%rename(species = species_english))%>%
+  mutate(superordinate_group = factor(superordinate_group, levels = c("ape", "old_world_monkey", "new_world_monkey", "lemur"), labels = c("Hominoidea", "Cercopithecoidea", "Platyrrhini", "Strepsirrhini")))
+```
+
+# Overview data and species
+
+```{r}
+data_N <- data%>%
+  group_by(superordinate_group, species_latin, species)%>%
+  summarise(Nsubjects = length(unique(subject_site)))
+
+d1 <- data%>%
+  rename(label = species_latin)%>%
+  mutate(label = str_replace_all(label, "_", " "),
+         label = paste(toupper(substr(label, 1, 1)), substr(label, 2, nchar(label)), sep=""))%>%
+  group_by(label, condition)%>%
+  tidyboot_mean(col = correct)
+```
+
+
+```{r}
+tree <- read.tree("../phylo/mp_species.tree")%>%
+  as_tibble%>%
+  left_join(data_N, by = c("label" = "species"))%>% 
+  select(-label)%>%
+  rename(label = species_latin)%>%
+  mutate(superordinate_group = as.character(superordinate_group),
+         label = str_replace_all(label, "_", " "),
+         label = paste(toupper(substr(label, 1, 1)), substr(label, 2, nchar(label)), sep=""))
+
+tree2 <- as.treedata(tree)
+
+# colors for clade
+cols <- viridis(4, end = .9)
+
+# for axis labels
+ax <- tibble(lab = c("Distance (Millions of years)", "Proportion correct"), 
+             x = c(60, 0.5), y = -2, .panel = c("Tree", "Performance"))
+
+# Nsubjects labels
+Nsub <- tibble(lab = c("# Subjects"), x = c(125, 136), y = Ntip(tree2) + 1, 
+             .panel = "Tree")
+
+# horizontal lines for reference
+h <- tibble(reference = c(NA, 1:Ntip(tree2)), .panel = c("Tree", rep("Performance", Ntip(tree2))))
+
+# aggregated performance per species
+v <- data%>%
+  rename(label = species_latin)%>%
+  mutate(label = str_replace_all(label, "_", " "),
+         label = paste(toupper(substr(label, 1, 1)), substr(label, 2, nchar(label)), sep=""))%>%
+  group_by(condition)%>%
+  tidyboot_mean(col = correct)%>%
+  mutate(.panel = "Performance")%>%
+  add_row(condition = "long", mean = NA, .panel = "Tree")
+
+# chance line
+chance <- tibble(.panel = c("Performance","Tree"), chance = c(1/3, NA))
+
+# performance across species
+v2 <- tibble(reference = c(NA, 1:Ntip(tree2)), .panel = c("Tree", rep("Performance", Ntip(tree2))))%>%left_join(v%>%select(-n))
+
+```
+
+
+
+
+```{r}
+tp <- ggtree(tree2) +
+  # root
+  geom_rootedge(rootedge = 5) +
+  #geom_hilight(highlight, aes(node = node, fill = superordinate_group), alpha = .3) +
+  # tip labels
+  geom_tippoint(aes(size = Nsubjects,fill = superordinate_group), shape = 21, alpha = .75)+ 
+  #geom_tippoint(aes(size = Nsites), stroke = 0, alpha = .8) +
+  # geom_tiplab(aes(label = str_c(label, " (", Nsites, "/", Nstudies, ")")), offset = 4, size = 3) +
+  geom_tiplab(offset = 4, size = 3) +
+  #geom_text(aes(label = Nsubjects), x = 135, hjust = 1, size = 3) +
+  # tweak scales
+  #scale_color_manual(values = c("grey30", cols)) +
+  scale_fill_manual(values = cols, name = "Clade") +
+  scale_size_area(max_size = 8) +
+  # display timescale at the bottom
+  theme_tree2() +
+  xlim_tree(110) +
+  #xlim_expand(c(0, 1)) +
+  # # node labels if needed for reference
+  # geom_text(aes(label = node, x = branch), size = 2, col = "blue", vjust = -.5) +
+  # add axis + Nstudies/sites labels
+  geom_text(data = ax, aes(label = lab), col = "black") +
+  #geom_text(data = Nlab, aes(label = lab), col = "black", size = 2.5) +
+  scale_x_continuous(expand = expand_scale(mult = c(0, .01))) +
+  scale_y_continuous(limits = c(2, Ntip(tree2)-1), oob = function(x, ...) x) +
+  coord_cartesian(clip = "off") +
+  # add reference lines (these will show up on right panel of facet_plot only)
+  geom_hline(data = h, aes(yintercept = reference), lwd = .2, col = "grey", alpha = .5) +
+  geom_vline(data = chance, aes(xintercept = chance), lty = 2, alpha = .5) +
+  # remove facet strips, expand bottom margin (to make space for x axis labels)
+  theme(strip.text = element_blank(), strip.background = element_blank(),
+      plot.margin = unit(c(1, 1, 2, 1.5), "cm"), panel.spacing = unit(1, "cm"))
+
+#tp <- rotate(tp, 71)
+```
+
+```{r}
+# add node labels fore reference
+#tp+ geom_text(aes(label = node, x = branch), size = 2, col = "blue", vjust = -.5)
+
+facet_plot(tp, panel ="Performance", data = d1, geom = geom_pointrange, 
+            mapping =  aes(x = mean, xmin = ci_lower, xmax = ci_upper, col = condition, pch = condition),
+             alpha = .75, lwd = .3, position= position_dodge2v(height = .5))+
+  scale_color_colorblind(name = "Delay")+
+  scale_shape(name = "Delay")+
+  scale_size(name = "# Subjects", breaks = c(1,5,10, 20, 40, 60))+
+  geom_vline(data = v, aes(xintercept = mean, col = condition), alpha = .5)+
+  geom_segment(data=v2, aes(x=ci_lower, xend=ci_upper, y = reference, yend = reference, col = condition), size = 6.95, alpha = .25)+ 
+  guides(fill = guide_legend(override.aes = list(size=6)))
+```
+```{r}
+ggsave("../figures/phylo_perf.pdf", width = 12, height = 10, scale = 1)
+ggsave("../figures/phylo_perf.png", width = 12, height = 10, scale = 1)
+```
+
+# Overview sites
+
+```{r}
+world <- map("world", plot = FALSE, fill = TRUE) %>% fortify()
+
+sites <- read_csv("../data/sites.csv")
+```
+
+```{r}
+# world map
+ms <- ggplot(sites, aes(x = long, y = lat)) +
+  geom_polygon(data = world, aes(group = group), fill = "grey90", lwd = .1, col = "darkgrey") +
+  geom_point(alpha = .8, col = "darkgreen") +
+  theme_map() 
+
+# add rectangle around europe 
+msx <- ms +
+  annotate("rect", ymin = c(32), ymax = c(63), xmin = c(-12), 
+           xmax = c(30), size = .5, col = "dodgerblue", fill = NA) + 
+  coord_fixed(1.3, ylim = c(-55, 83.59961)) +
+  theme(legend.position = "none")
+  
+# europe
+ms2 <- ms + 
+  geom_polygon(data = world, aes(group = group), col = "black", fill = "grey90", lwd = .2) +
+  geom_point(alpha = .8, col = "darkgreen") +
+  coord_fixed(1.3, ylim = c(32, 60), xlim = c(-10, 30)) +
+  panel_border(color = "dodgerblue", size = 1)
+
+# add europe inset
+site_map <- ggdraw() +
+  draw_plot(msx) +
+  draw_plot(ms2, x = -0.05, y = 0.05, width = .42, height = .42)
+```
+
+```{r}
+ggsave("../figures/map.pdf", width = 8, height = 5.5, scale = 1)
+ggsave("../figures/map.png", width = 8, height = 5.5, scale = 1)
+```
+
+```{r}
+# pictures from 6 sites
+img1 <- readPNG("../figures/mp1_setup2.png")
+
+im <- ggplot() + background_image(img1) + 
+  coord_fixed(ratio = 1.255319)
+```
+
+# Confirmatory results
+
+```{r}
+#conf_model <- readRDS("../saves/conf_factor_delay_model.rds")
+
+# model_draws <- conf_model%>% posterior_samples(pars = c("b_factor_delayM1","b_factor_delay1", "b_task_experienceyes", "b_norm_age", "b_cup_distance", "b_board_size", "b_trial"))%>%
+#     mutate(model= "baseline")%>%
+#   pivot_longer(names_to = "estimate", values_to = "value", cols = c(b_factor_delayM1,b_factor_delay1,b_task_experienceyes,b_norm_age, b_cup_distance, b_board_size, b_trial ))%>%
+#   mutate(estimate = str_remove(estimate,"b_"))
+# saveRDS(model_draws, "../figures/conf_model_draws.rds")
+
+model_draws <- readRDS("../figures/conf_model_draws.rds")
+
+model_plot <- model_draws%>%
+  mutate(facet = ifelse(grepl("delay", estimate), "Delay",
+                        ifelse(estimate == "norm_age" | estimate == "trial" | estimate == "task_experienceyes", "Experience", "Implementation")))%>%
+    mutate(estimate = recode(estimate,
+                           factor_delayM1 = "Short delay (0s)",
+                           factor_delay1 = "Long delay (30s)",
+                           task_experienceyes = "Task experience (yes)",
+                           norm_age = "Age (normed)",
+                           board_size = "Board size",
+                           cup_distance = "Cup distance",
+                           trial = "Trial"))
+
+# model_fix <- fixef(conf_model)%>%as_tibble(rownames = "estimate")%>%
+#   filter(estimate != "Intercept")%>%
+#   mutate(facet = ifelse(grepl("delay", estimate), "Delay", 
+#                         ifelse(estimate == "norm_age" | estimate == "trial" | estimate == "task_experienceyes", "Experience", "Implementation")))%>%
+#     mutate(estimate = recode(estimate, 
+#                            factor_delayM1 = "Short delay (0s)",
+#                            factor_delay1 = "Long delay (30s)",
+#                            task_experienceyes = "Task experience (yes)",
+#                            norm_age = "Age (normed)",
+#                            board_size = "Board size",
+#                            cup_distance = "Cup distance",
+#                            trial = "Trial"))
+# 
+# saveRDS(model_fix, "../figures/conf_model_fixed.rds")
+
+model_fix <- readRDS("../figures/conf_model_fixed.rds")
+
+
+conf_plot <- model_plot %>%
+  ggplot(.,aes(x = value, y= estimate))+
+  geom_pointrange(data = model_fix, aes(x = Estimate, y= estimate, xmin = Q2.5, xmax = Q97.5))+
+  geom_vline(xintercept = 0, lty = 2, alpha = .75)+
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    aes(fill = factor(stat(quantile))),
+    calc_ecdf = TRUE,
+    quantiles = c(0.025, 0.975),
+    size = .5
+  ) +
+  geom_pointrange(data = model_fix, aes(x = Estimate, xmin = Q2.5, xmax = Q97.5))+
+  theme_minimal() +
+  scale_fill_manual(
+   values = c("firebrick", "#A0A0A0A0", "firebrick")
+  )+
+  facet_wrap(~facet, scales = "free_y")+
+  guides(fill = F)+
+  labs(y = "Model predictor", x = "Estimate")
+```
+```{r}
+ggsave("../figures/conf_model.pdf", width = 9, height = 2, scale = 1.2)
+ggsave("../figures/conf_model.png", width = 9, height = 2.5, scale = 1.2)
+```
+
+```{r}
+ggarrange(
+  ggarrange(site_map, im,
+          labels = c("A", "B"),
+          ncol = 2,
+          widths = c(2,1)),
+  conf_plot,
+  ncol = 1,
+  heights = c(1.5,1),
+  labels = c("", "C"))
+  
+```
+```{r}
+ggsave("../figures/site_model.pdf", width = 9, height = 5, scale = 1.5)
+ggsave("../figures/site_model.png", width = 9, height = 5, scale = 1.5)
+```

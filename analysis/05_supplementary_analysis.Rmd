@@ -249,3 +249,36 @@ ggplot(cup, aes(x = cup_distance, y = body_size, col = mean, pch = superordinate
 ```{r}
 ggsave("../figures/body_size_cup_distance.png", height = 4, width = 8)
 ```
+
+
+# Overview plot 
+
+```{r}
+o1 <- data %>%
+  group_by(superordinate_group, species,condition)%>%
+  mutate(n = length(unique(subject_site)))%>%
+  ungroup()%>%
+  group_by(superordinate_group, species,subject_site,n, condition)%>%
+  summarise(mean = mean(correct))
+
+o2 <- o1%>%
+  group_by(superordinate_group, species, n, condition)%>%
+  tidyboot_mean(column = mean)
+
+ggplot()+
+  geom_hline(yintercept = 1/3, lty = 2)+
+  geom_count(data = o1, aes(x = species, y = mean, col = condition), position = position_jitterdodge(jitter.height = 0, jitter.width = 0.1, dodge.width = 0.5), alpha = .25, width = .05, height = 0)+
+  geom_pointrange(data = o2, aes(x = species, y = mean, col = condition, ymin = ci_lower, ymax = ci_upper, col = condition), position = position_dodge(width = .5))+
+  labs(x = "Species", y = "Proportion Correct")+
+  scale_color_ptol(name = "Delay")+
+  facet_grid(~superordinate_group, scales = "free_x")+
+  ylim(-0.05, 1.05)+
+  theme_few()+
+  theme(axis.text.x=element_text(angle = 45, vjust = 1, hjust = 1))
+
+```
+
+```{r}
+ggsave("../figures/overview.png", height = 6, width = 16)
+```
+

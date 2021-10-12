@@ -98,6 +98,12 @@ phylo_data <- phylo_data %>%
          trial = scale(trial, center = T, scale = T))
 ```
 
+## Save the merged/recoded data for use in subsequent Rmds
+
+```{r}
+write_rds(phylo_data, "../saves/phylo_data.rds")
+```
+
 # Phylogenetic tree
 
 Tree-related processing:
