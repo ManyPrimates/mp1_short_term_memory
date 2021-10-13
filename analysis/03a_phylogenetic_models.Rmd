@@ -120,6 +120,9 @@ tree_species <- tree$tip.label
 stopifnot(length(setdiff(data_species, intersect(tree_species, data_species))) == 0)
 tree <- keep.tip(tree, data_species)
 A <- vcv.phylo(tree)
+
+## Save tree for later
+write_rds(tree, "../saves/pruned_tree.rds")
 ```
 
 # Phylogenetic models
