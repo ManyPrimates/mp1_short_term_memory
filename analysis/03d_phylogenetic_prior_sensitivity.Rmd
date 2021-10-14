@@ -1,0 +1,212 @@
+---
+title: "ManyPrimates1_Phylogenetic_Models_Prior_Sensitivity"
+output:
+  html_notebook:
+    code_folding: hide
+    css: style.css
+    theme: paper
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+library(ape)
+library(tidyverse)
+library(readxl)
+library(googledrive)
+library(brms)
+library(broom)
+library(ggthemes)
+library(tidybayes)
+library(ggridges)
+library(ggpubr)
+library(parallel)
+```
+
+# Data processing
+
+## Read in the already merged and recoded data and pruned tree from the
+## earlier run of the phylogenetic models
+
+
+```{r}
+phylo_data <- read_rds("../saves/phylo_data.rds")
+tree <- read_rds("../saves/pruned_tree.rds")
+A <- vcv.phylo(tree)
+```
+
+# Phylogenetic models
+
+```{r}
+formulas <- list()
+priors <- list()
+```
+
+## Model 0: Phylogenetic baseline model
+
+```{r}
+model_name <- "base_model"
+formulas[[model_name]] <- correct ~ delay + (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(skew_normal(0, 1.5, 3), class=Intercept) +
+                        prior(skew_normal(-1.4, 2, -3), coef=delay1) +
+                        prior(normal(0, 1), class=sd, coef=Intercept, group=subject_site) +
+                        prior(normal(0, 1), class=sd, coef=Intercept, group=site) +
+                        prior(normal(0, 0.5), class=sd, coef=delay1, group=subject_site) +
+                        prior(normal(0, 0.5), class=sd, coef=delay1, group=site) +
+                        prior(normal(0, 0.5), class=sd, coef=trial, group=subject_site) +
+                        prior(normal(0, 0.5), class=sd, coef=trial, group=site) +
+                        prior("lkj(1)", class = "cor")
+
+reference_species_priors <- prior(normal(0, 1), class=sd, coef=Intercept, group=species_english) +
+                        prior(normal(0, 0.5), class=sd, coef=delay1, group=species_english) +
+                        prior(normal(0, 0.5), class=sd, coef=trial, group=species_english)
+
+
+weaker_species_priors <- prior(normal(0, 0.5), class=sd, coef=Intercept, group=species_english) +
+                         prior(normal(0, 0.25), class=sd, coef=delay1, group=species_english) +
+                         prior(normal(0, 0.25), class=sd, coef=trial, group=species_english)
+
+weakest_species_priors <- prior(normal(0, 0.25), class=sd, coef=Intercept, group=species_english) +
+                          prior(normal(0, 0.125), class=sd, coef=delay1, group=species_english) +
+                          prior(normal(0, 0.125), class=sd, coef=trial, group=species_english)
+
+stronger_species_priors <- prior(normal(0, 2.0), class=sd, coef=Intercept, group=species_english) +
+                           prior(normal(0, 1.0), class=sd, coef=delay1, group=species_english) +
+                           prior(normal(0, 1.0), class=sd, coef=trial, group=species_english)
+```
+
+## Model 3a: Home range
+
+numerical predictor: `home_range`.
+
+```{r}
+model_name <- "home_range_model"
+formulas[[model_name]] <- correct ~ delay * home_range +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=home_range) +
+                        prior(normal(0, 1), coef=`delay1:home_range`)
+```
+
+## Model 4: Vocal repertoire
+
+Numeric predictor: `vocal_repertoire`. 
+
+```{r}
+model_name <- "vocal_repertoire_model"
+formulas[[model_name]] <- correct ~ delay * vocal_repertoire +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=vocal_repertoire) +
+                        prior(normal(0, 1), coef=`delay1:vocal_repertoire`)
+```
+
+## Model 5: Dietary breath
+
+Numeric predictor: `dietary_breadth`. 
+
+```{r}
+model_name <- "dietary_breadth_model"
+formulas[[model_name]] <- correct ~ delay * dietary_breadth +
+                          (1 + delay + trial | subject_site + site + gr(species_english, cov=A))
+priors[[model_name]] <- prior(normal(0, 1), coef=dietary_breadth) +
+                        prior(normal(0, 1), coef=`delay1:dietary_breadth`)
+```
+
+## Run all models in parallel
+
+Models are saved to `saves/` folder.
+
+```{r}
+
+# Weaker phylogeny
+reference_priors <- list()
+weaker_priors <- list()
+weakest_priors <- list()
+stronger_priors <- list()
+reference_priors[[1]] <- priors[[1]] + reference_species_priors
+weaker_priors[[1]] <- priors[[1]] + weaker_species_priors
+weakest_priors[[1]] <- priors[[1]] + weakest_species_priors
+stronger_priors[[1]] <- priors[[1]] + stronger_species_priors
+for(i in 2:length(priors)) {
+  reference_priors[[i]] <- reference_priors[[1]] + priors[[i]]
+  weaker_priors[[i]] <- weaker_priors[[1]] + priors[[i]]
+  weakest_priors[[i]] <- weakest_priors[[1]] + priors[[i]]
+  stronger_priors[[i]] <- stronger_priors[[1]] + priors[[i]]
+}
+stopifnot(length(reference_priors) == length(formulas))
+stopifnot(length(weaker_priors) == length(formulas))
+stopifnot(length(weakest_priors) == length(formulas))
+stopifnot(length(stronger_priors) == length(formulas))
+
+# Define a function to run, process and save a model given a formula and prior
+run_model <- function(formula, prior, chains, iter, filename) {
+  print(c(filename, formula, prior))
+  model <- brm(formula, family=bernoulli(),
+               data=phylo_data,
+               data2 = list(A = A),
+               prior=prior,
+               chains=chains,
+               iter=iter,
+               cores=chains,
+            )
+  model <- add_criterion(model, c("loo", "waic"))
+  saveRDS(model, filename)
+}
+
+# Run and save all models in parallel
+chains <- 8
+iter <- 5000
+available_cores <- detectCores()
+simultaneous_models <- floor(available_cores / chains)
+
+## Turn warnings into errors so we won't get past the call to mcmapply if
+## something goes wrong
+#options(warn=2)
+
+# Weaker
+filenames <- paste("../saves/weaker_phylo_", names(formulas), ".rds", sep="")
+mcmapply(run_model, formulas, weaker_priors, chains, iter, filenames,
+         mc.cores=simultaneous_models)
+
+# Weakest
+filenames <- paste("../saves/weakest_phylo_", names(formulas), ".rds", sep="")
+mcmapply(run_model, formulas, weakest_priors, chains, iter, filenames,
+         mc.cores=simultaneous_models)
+
+# Stronger
+filenames <- paste("../saves/stronger_phylo_", names(formulas), ".rds", sep="")
+mcmapply(run_model, formulas, stronger_priors, chains, iter, filenames,
+         mc.cores=simultaneous_models)
+
+## Restore default warning behaviour
+#options(warn=0)
+
+# Do and save comparisons
+
+weaker_base_model <- readRDS("../saves/weaker_phylo_base_model.rds")
+weaker_vocal_repertoire_model <- readRDS("../saves/weaker_phylo_vocal_repertoire_model.rds")
+weaker_dietary_breadth_model <- readRDS("../saves/weaker_phylo_dietary_breadth_model.rds")
+weaker_home_range_model <- readRDS("../saves/weaker_phylo_home_range_model.rds")
+weaker_comp <- model_weights(weaker_base_model, weaker_vocal_repertoire_model,
+			     weaker_dietary_breadth_model, weaker_home_range_model,
+                             weights="waic")
+write_csv(as_tibble(weaker_comp), "../saves/weaker_phylogenetic_model_comparison.csv")
+
+weakest_base_model <- readRDS("../saves/weakest_phylo_base_model.rds")
+weakest_vocal_repertoire_model <- readRDS("../saves/weakest_phylo_vocal_repertoire_model.rds")
+weakest_dietary_breadth_model <- readRDS("../saves/weakest_phylo_dietary_breadth_model.rds")
+weakest_home_range_model <- readRDS("../saves/weakest_phylo_home_range_model.rds")
+weakest_comp <- model_weights(weakest_base_model, weakest_vocal_repertoire_model,
+			     weakest_dietary_breadth_model, weakest_home_range_model,
+                             weights="waic")
+write_csv(as_tibble(weakest_comp), "../saves/weakest_phylogenetic_model_comparison.csv")
+
+stronger_base_model <- readRDS("../saves/stronger_phylo_base_model.rds")
+stronger_vocal_repertoire_model <- readRDS("../saves/stronger_phylo_vocal_repertoire_model.rds")
+stronger_dietary_breadth_model <- readRDS("../saves/stronger_phylo_dietary_breadth_model.rds")
+stronger_home_range_model <- readRDS("../saves/stronger_phylo_home_range_model.rds")
+stronger_comp <- model_weights(stronger_base_model, stronger_vocal_repertoire_model,
+			     stronger_dietary_breadth_model, stronger_home_range_model,
+                             weights="waic")
+write_csv(as_tibble(stronger_comp), "../saves/stronger_phylogenetic_model_comparison.csv")
+
+```
