@@ -181,32 +181,33 @@ mcmapply(run_model, formulas, stronger_priors, chains, iter, filenames,
 #options(warn=0)
 
 # Do and save comparisons
+model_names <- c("base_model", "vocal_repertoire_model", "dietary_breadth_model", "home_range_model")
 
 weaker_base_model <- readRDS("../saves/weaker_phylo_base_model.rds")
 weaker_vocal_repertoire_model <- readRDS("../saves/weaker_phylo_vocal_repertoire_model.rds")
 weaker_dietary_breadth_model <- readRDS("../saves/weaker_phylo_dietary_breadth_model.rds")
 weaker_home_range_model <- readRDS("../saves/weaker_phylo_home_range_model.rds")
-weaker_comp <- model_weights(weaker_base_model, weaker_vocal_repertoire_model,
+weaker_comp <- loo_compare(weaker_base_model, weaker_vocal_repertoire_model,
 			     weaker_dietary_breadth_model, weaker_home_range_model,
-                             weights="waic")
+                             criterion = "waic") %>% as_tibble %>% mutate(model=model_names)
 write_csv(as_tibble(weaker_comp), "../saves/weaker_phylogenetic_model_comparison.csv")
 
 weakest_base_model <- readRDS("../saves/weakest_phylo_base_model.rds")
 weakest_vocal_repertoire_model <- readRDS("../saves/weakest_phylo_vocal_repertoire_model.rds")
 weakest_dietary_breadth_model <- readRDS("../saves/weakest_phylo_dietary_breadth_model.rds")
 weakest_home_range_model <- readRDS("../saves/weakest_phylo_home_range_model.rds")
-weakest_comp <- model_weights(weakest_base_model, weakest_vocal_repertoire_model,
+weakest_comp <- loo_compare(weakest_base_model, weakest_vocal_repertoire_model,
 			     weakest_dietary_breadth_model, weakest_home_range_model,
-                             weights="waic")
+                             criterion="waic") %>% as_tibble %>% mutate(model=model_names)
 write_csv(as_tibble(weakest_comp), "../saves/weakest_phylogenetic_model_comparison.csv")
 
 stronger_base_model <- readRDS("../saves/stronger_phylo_base_model.rds")
 stronger_vocal_repertoire_model <- readRDS("../saves/stronger_phylo_vocal_repertoire_model.rds")
 stronger_dietary_breadth_model <- readRDS("../saves/stronger_phylo_dietary_breadth_model.rds")
 stronger_home_range_model <- readRDS("../saves/stronger_phylo_home_range_model.rds")
-stronger_comp <- model_weights(stronger_base_model, stronger_vocal_repertoire_model,
+stronger_comp <- loo_compare(stronger_base_model, stronger_vocal_repertoire_model,
 			     stronger_dietary_breadth_model, stronger_home_range_model,
-                             weights="waic")
+                             criterion="waic") %>% as_tibble %>% mutate(model=model_names)
 write_csv(as_tibble(stronger_comp), "../saves/stronger_phylogenetic_model_comparison.csv")
 
 ```
