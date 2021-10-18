@@ -23,6 +23,20 @@ library(ggpubr)
 library(parallel)
 ```
 
+# NOTE
+Running the models takes a long time - outputs are too large to put on GitHub (~6GB). If you want to access the model outputs directly, you have to download them via the following link. Code that follows will put them into the `saves/` folder.
+
+```{r}
+# download zip file from Max Planck cloud storage
+options(timeout=3600) # 1h, maybe you need more depending on your internet speed
+download.file("https://keeper.mpdl.mpg.de/f/f7b96fe82bd34a0caa74/?dl=1", 
+              destfile = "../saves/saves.zip")
+# unpack zip file to get .rds files
+unzip("../saves/saves.zip", exdir = "../saves/")
+```
+
+If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/f7b96fe82bd34a0caa74/?dl=1`.
+
 # Data processing
 
 ## Read in the already merged and recoded data and pruned tree from the
@@ -180,10 +194,19 @@ mcmapply(run_model, formulas, stronger_priors, chains, iter, filenames,
 ## Restore default warning behaviour
 #options(warn=0)
 
+```
+
+
+```{r}
 # Do and save comparisons
+weaker_base_model <- readRDS("../saves/weaker_phylo_base_model.rds")
+weakest_base_model <- readRDS("../saves/weakest_phylo_base_model.rds")
+stronger_base_model <- readRDS("../saves/stronger_phylo_base_model.rds")
+
+
 model_names <- c("base_model", "vocal_repertoire_model", "dietary_breadth_model", "home_range_model")
 
-weaker_base_model <- readRDS("../saves/weaker_phylo_base_model.rds")
+# weaker prior
 weaker_vocal_repertoire_model <- readRDS("../saves/weaker_phylo_vocal_repertoire_model.rds")
 weaker_dietary_breadth_model <- readRDS("../saves/weaker_phylo_dietary_breadth_model.rds")
 weaker_home_range_model <- readRDS("../saves/weaker_phylo_home_range_model.rds")
@@ -192,7 +215,7 @@ weaker_comp <- loo_compare(weaker_base_model, weaker_vocal_repertoire_model,
                              criterion = "waic") %>% as_tibble %>% mutate(model=model_names)
 write_csv(as_tibble(weaker_comp), "../saves/weaker_phylogenetic_model_comparison.csv")
 
-weakest_base_model <- readRDS("../saves/weakest_phylo_base_model.rds")
+# weakes prior
 weakest_vocal_repertoire_model <- readRDS("../saves/weakest_phylo_vocal_repertoire_model.rds")
 weakest_dietary_breadth_model <- readRDS("../saves/weakest_phylo_dietary_breadth_model.rds")
 weakest_home_range_model <- readRDS("../saves/weakest_phylo_home_range_model.rds")
@@ -201,7 +224,7 @@ weakest_comp <- loo_compare(weakest_base_model, weakest_vocal_repertoire_model,
                              criterion="waic") %>% as_tibble %>% mutate(model=model_names)
 write_csv(as_tibble(weakest_comp), "../saves/weakest_phylogenetic_model_comparison.csv")
 
-stronger_base_model <- readRDS("../saves/stronger_phylo_base_model.rds")
+# stronger prior
 stronger_vocal_repertoire_model <- readRDS("../saves/stronger_phylo_vocal_repertoire_model.rds")
 stronger_dietary_breadth_model <- readRDS("../saves/stronger_phylo_dietary_breadth_model.rds")
 stronger_home_range_model <- readRDS("../saves/stronger_phylo_home_range_model.rds")
@@ -209,5 +232,5 @@ stronger_comp <- loo_compare(stronger_base_model, stronger_vocal_repertoire_mode
 			     stronger_dietary_breadth_model, stronger_home_range_model,
                              criterion="waic") %>% as_tibble %>% mutate(model=model_names)
 write_csv(as_tibble(stronger_comp), "../saves/stronger_phylogenetic_model_comparison.csv")
-
 ```
+
