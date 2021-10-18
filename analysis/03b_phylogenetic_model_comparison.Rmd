@@ -30,13 +30,13 @@ Running the models takes a long time (5h on a 64 core HPC) - outputs are too lar
 ```{r}
 # download zip file from Max Planck cloud storage
 options(timeout=3600) # 1h, maybe you need more depending on your internet speed
-download.file("https://keeper.mpdl.mpg.de/f/b81dcc28ca7242e49c4b/?dl=1", 
+download.file("https://keeper.mpdl.mpg.de/f/29cc8af41c3a4dd4b8da/?dl=1", 
               destfile = "../saves/saves.zip")
 # unpack zip file to get .rds files
 unzip("../saves/saves.zip", exdir = "../saves/")
 ```
 
-If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/d/d258f3c7a62948b58341/` but you will have to put them manually into the `saves` directory.
+If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/29cc8af41c3a4dd4b8da/?dl=1` but you will have to put them manually into the `saves` directory.
 
 # Data processing
 
@@ -421,18 +421,18 @@ model_draws <-  bind_rows(
   vocal_repertoire_model%>% posterior_samples(pars = c("b_delay1","b_vocal_repertoire","b_delay1:vocal_repertoire"))%>%
     rename(delay = b_delay1,
            predictor = b_vocal_repertoire,
-           interaction = `b_delay1:vocal_repertoire`)%>%
+           `delay x predictor` = `b_delay1:vocal_repertoire`)%>%
     mutate(model= "vocal_repertoire"),
   dietary_breadth_model%>% posterior_samples(pars = c("b_delay1","b_dietary_breadth","b_delay1:dietary_breadth"))%>%
     rename(delay = b_delay1,
            predictor = b_dietary_breadth,
-           interaction = `b_delay1:dietary_breadth`)%>%
+           `delay x predictor` = `b_delay1:dietary_breadth`)%>%
     mutate(model= "dietary_breadth"),
   base_model%>% posterior_samples(pars = c("b_delay1"))%>%
     rename(delay = b_delay1)%>%
     mutate(model= "baseline")
 )%>%
-  pivot_longer(names_to = "estimate", values_to = "value", cols = c(delay,predictor,interaction ))
+  pivot_longer(names_to = "estimate", values_to = "value", cols = c(delay,predictor,`delay x predictor` ))
 
 model_draws %>%
   ggplot(.,aes(x = value, y= model, fill = factor(stat(quantile))))+
@@ -459,34 +459,32 @@ model_pred <-  bind_rows(
   posterior_samples(pars = c("b_Intercept","b_delay1","b_vocal_repertoire","b_delay1:vocal_repertoire"), subset = runif(1000, 0, 20000))%>%
   rownames_to_column(var = "iteration")%>%
   rename(intercept = b_Intercept, 
-         delay = b_delay1,
+         b_delay = b_delay1,
          main_effect = b_vocal_repertoire,
          interaction = `b_delay1:vocal_repertoire`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
-  mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
-         medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
-         long_delay = intercept + delay * 1 + main_effect * predictor + interaction * predictor * 1)%>%
-  select(-delay, -intercept, - interaction, -main_effect)%>%
-  pivot_longer(cols = c(short_delay, medium_delay, long_delay), names_to = "delay", values_to = "prediction")%>%
+  mutate(no_delay = intercept + b_delay * 1 + main_effect * predictor + interaction * predictor * -1,
+         delay = intercept + b_delay * 0 + main_effect * predictor + interaction * predictor * 0)%>%
+  select(-b_delay,-intercept, - interaction, -main_effect)%>%
+  pivot_longer(cols = c(no_delay, delay), names_to = "delay", values_to = "prediction")%>%
   mutate(prediction = plogis(prediction),
-         delay = factor(delay, levels = c("short_delay", "medium_delay", "long_delay")),
+         delay = factor(delay, levels = c("no_delay", "delay")),
          model= "vocal_repertoire"),
   
   dietary_breadth_model%>% 
   posterior_samples(pars = c("b_Intercept","b_delay1","b_dietary_breadth","b_delay1:dietary_breadth"), subset = runif(1000, 0, 20000))%>%
   rownames_to_column(var = "iteration")%>%
   rename(intercept = b_Intercept, 
-         delay = b_delay1,
+         b_delay = b_delay1,
          main_effect = b_dietary_breadth,
          interaction = `b_delay1:dietary_breadth`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
-  mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
-         medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
-         long_delay = intercept + delay * 1 + main_effect * predictor + interaction * predictor * 1)%>%
-  select(-delay, -intercept, - interaction, -main_effect)%>%
-  pivot_longer(cols = c(short_delay, medium_delay, long_delay), names_to = "delay", values_to = "prediction")%>%
+  mutate(no_delay = intercept + b_delay * 1 + main_effect * predictor + interaction * predictor * -1,
+         delay = intercept + b_delay * 0 + main_effect * predictor + interaction * predictor * 0)%>%
+  select(-b_delay,-intercept, - interaction, -main_effect)%>%
+  pivot_longer(cols = c(no_delay, delay), names_to = "delay", values_to = "prediction")%>%
   mutate(prediction = plogis(prediction),
-         delay = factor(delay, levels = c("short_delay", "medium_delay", "long_delay")),
+         delay = factor(delay, levels = c("no_delay", "delay")),
          model= "dietary_breadth")
   )
 
@@ -497,17 +495,16 @@ model_pred_map <- bind_rows(
   select(var, Estimate)%>%
   pivot_wider(names_from = var, values_from = Estimate)%>%
   rename(intercept = Intercept, 
-         delay = delay1,
+         b_delay = delay1,
          main_effect = vocal_repertoire,
          interaction = `delay1:vocal_repertoire`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
-  mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
-         medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
-         long_delay = intercept + delay * 1 + main_effect * predictor + interaction * predictor * 1)%>%
-  select(-delay, -intercept, - interaction, -main_effect)%>%
-  pivot_longer(cols = c(short_delay, medium_delay, long_delay), names_to = "delay", values_to = "prediction")%>%
+  mutate(no_delay = intercept + b_delay * 1 + main_effect * predictor + interaction * predictor * -1,
+         delay = intercept + b_delay * 0 + main_effect * predictor + interaction * predictor * 0)%>%
+  select(-b_delay,-intercept, - interaction, -main_effect)%>%
+  pivot_longer(cols = c(no_delay, delay), names_to = "delay", values_to = "prediction")%>%
   mutate(prediction = plogis(prediction),
-         delay = factor(delay, levels = c("short_delay", "medium_delay", "long_delay")),
+         delay = factor(delay, levels = c("no_delay", "delay")),
          model= "vocal_repertoire"),
  
   fixef(dietary_breadth_model)%>%
@@ -515,17 +512,16 @@ model_pred_map <- bind_rows(
   select(var, Estimate)%>%
   pivot_wider(names_from = var, values_from = Estimate)%>%
   rename(intercept = Intercept, 
-         delay = delay1,
+         b_delay = delay1,
          main_effect = dietary_breadth,
          interaction = `delay1:dietary_breadth`)%>%
   expand_grid(predictor = seq(-1,1, length=100))%>%
-  mutate(short_delay = intercept + delay * -1 + main_effect * predictor + interaction * predictor * -1,
-         medium_delay = intercept + delay * 0 + main_effect * predictor + interaction * predictor * 0,
-         long_delay = intercept + delay * 1 + main_effect * predictor + interaction * predictor * 1)%>%
-  select(-delay, -intercept, - interaction, -main_effect)%>%
-  pivot_longer(cols = c(short_delay, medium_delay, long_delay), names_to = "delay", values_to = "prediction")%>%
+  mutate(no_delay = intercept + b_delay * 1 + main_effect * predictor + interaction * predictor * -1,
+         delay = intercept + b_delay * 0 + main_effect * predictor + interaction * predictor * 0)%>%
+  select(-b_delay,-intercept, - interaction, -main_effect)%>%
+  pivot_longer(cols = c(no_delay, delay), names_to = "delay", values_to = "prediction")%>%
   mutate(prediction = plogis(prediction),
-         delay = factor(delay, levels = c("short_delay", "medium_delay", "long_delay")),
+         delay = factor(delay, levels = c("no_delay", "delay")),
          model= "dietary_breadth"),
    
 )
