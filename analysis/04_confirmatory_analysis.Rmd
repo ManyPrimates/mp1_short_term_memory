@@ -25,18 +25,18 @@ library(BayesFactor)
 
 
 # NOTE
-Running the models takes quite some time (2h on a HPC) - outputs are too large to put on GitHub (~600MB). If you want to access the model outputs directly, you have to download them via the following link. Code that follows expects files to be in `saves/`.
+Running the models takes quite some time (2h on a HPC) - outputs are too large to put on GitHub (~2GB). If you want to access the model outputs directly, you have to download them via the following link. Code that follows expects files to be in `saves/`.
 
 ```{r}
 # download zip file from Max Planck cloud storage
 options(timeout=3600) # 1h, maybe you need more depending on your internet speed
-download.file("https://keeper.mpdl.mpg.de/f/3de147c222e946e78f59/?dl=1", 
+download.file("https://keeper.mpdl.mpg.de/f/9379c00231fc42e38920/?dl=1", 
               destfile = "../saves/saves.zip")
 # unpack zip file to get .rds files
 unzip("../saves/saves.zip", exdir = "../saves/")
 ```
 
-If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/3de147c222e946e78f59/?dl=1` but you will have to put them manually into the `saves` directory.
+If the code doesn't work, you can download the files here: `https://keeper.mpdl.mpg.de/f/9379c00231fc42e38920/?dl=1` but you will have to put them manually into the `saves` directory.
 
 # Data processing
 
@@ -227,6 +227,16 @@ if(file.exists(null_model_filename)) {
 }
 ```
 
+## Read in model outputs
+
+```{r}
+numeric_delay_model <- readRDS("../saves/conf_numeric_delay_model.rds")
+factor_delay_model <- readRDS("../saves/conf_factor_delay_model.rds")
+binary_delay_model <- readRDS("../saves/conf_binary_delay_model.rds")
+null_model <- readRDS("../saves/conf_null_model.rds")
+```
+
+
 # Model comparison
 
 ```{r}
@@ -273,10 +283,13 @@ if(file.exists(model_comparison_filename)) {
 
 ## Posterior distributions for fixed effects
 ```{r}
-model_draws <- numeric_delay_model%>% posterior_samples(pars = c("b_delay", "b_task_experienceyes", "b_norm_age", "b_cup_distance", "b_board_size", "b_trial"))%>%
+model_draws <- factor_delay_model%>% posterior_samples(pars = c("b_factor_delayM1","b_factor_delay1", "b_task_experienceyes", "b_norm_age", "b_cup_distance", "b_board_size", "b_trial"))%>%
     mutate(model= "baseline")%>%
-  pivot_longer(names_to = "estimate", values_to = "value", cols = c(b_delay,b_task_experienceyes,b_norm_age, b_cup_distance, b_board_size, b_trial ))%>%
-  mutate(estimate = str_remove(estimate,"b_"))
+  pivot_longer(names_to = "estimate", values_to = "value", cols = c(b_factor_delayM1,b_factor_delay1,b_task_experienceyes,b_norm_age, b_cup_distance, b_board_size, b_trial ))%>%
+  mutate(estimate = str_remove(estimate,"b_"),
+         estimate = recode(estimate, 
+                           factor_delayM1 = "delay_short",
+                           factor_delay1 = "delay_long"))
 
 model_draws %>%
   ggplot(.,aes(x = value, y= estimate, fill = factor(stat(quantile))))+
@@ -294,7 +307,7 @@ model_draws %>%
 ```
 
 ```{r}
-ggsave("../figures/confirmatory_analysis_main_effects.png")
+#ggsave("../figures/confirmatory_analysis_main_effects.png")
 ```
 
 # Exploratory analysis for age
@@ -389,6 +402,14 @@ if(file.exists(quad_model_filename)) {
 }
 ```
 
+## Read in model files
+
+```{r}
+int_model <- readRDS("../saves/conf_int_model.rds")
+quad_model <- readRDS("../saves/conf_quad_model.rds")
+
+```
+
 ## Model comparison
 
 ```{r}
@@ -396,14 +417,14 @@ model_comparison_exp_filename <- "../saves/confirmatory_model_comparison_explora
 if(!file.exists(model_comparison_exp_filename)) {
 
  comp_waic_exp <-  loo_compare(
-   numeric_delay_model,
+   binary_delay_model,
    int_model,
    quad_model,
    criterion = c("waic"))%>%
    as_tibble(rownames = "model")
 
  comp_loo_exp <-  loo_compare(
-   numeric_delay_model,
+   binary_delay_model,
    int_model,
    quad_model,
    criterion = c("loo"))%>%
