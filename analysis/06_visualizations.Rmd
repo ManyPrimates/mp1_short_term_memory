@@ -312,3 +312,132 @@ ggarrange(
 ggsave("../figures/site_model.pdf", width = 9, height = 5, scale = 1.5)
 ggsave("../figures/site_model.png", width = 9, height = 5, scale = 1.5)
 ```
+
+# Phylogenetic signal visualisations
+
+```{r}
+
+# Read in data
+d <- read_xlsx("../data/species_predictors.xlsx") %>%
+	rename(label=species_english)
+
+# Read in tree
+t <- read.tree("../phylo/mp_species.tree")
+
+# Read model
+m <- readRDS("../saves/base_model.rds")
+
+plot_model_pred <- function(d, m, t) {
+	model_species <- unique(m$data$species_english)
+	new_data <- data_frame(species_english=model_species,
+				 site=1:length(model_species), subject_site=1:length(model_species),
+				 delay=0, trial=0)
+	predictions <- posterior_linpred(m, newdata=new_data,
+					  allow_new_levels=TRUE, sample_new_levels="old_levels")
+	predictions <- setNames(as.vector(colMeans(predictions)), new_data$species_english)
+
+	# Prune tree to only species with known values
+	t <- keep.tip(t, model_species)
+
+	# Turn tree into a tibble
+	tt <- as_tibble(t)
+
+	# Do the ASR and construct a tibble mapping internal nodes to predictor
+	asr <- ape::ace(predictions, t, "cont")
+	asrt <- tibble(node=as.integer(names(asr$ace)), performance=asr$ace)
+
+	# Hack up a tibble mapping external nodes to model predictions
+	dt <- left_join(tibble(node=1:length(t$tip.label), label=t$tip.label),
+			tibble(label=names(predictions), performance=predictions),
+			by="label") %>%
+		select(node, performance)
+
+	# Join the above two tables so we have predictor for *all* nodes and add that to the tree tibble
+	tt <- left_join(tt, rbind(asrt, dt))
+
+	# Add clade info
+	tt <- left_join(tt, select(d, label, superordinate_group, species_latin), by="label") %>%
+		mutate(species_latin = str_replace_all(species_latin, "_", " "))
+
+	# Turn table into `treedata` object and plot
+	td <- as.treedata(tt)
+	plot <- ggtree(td, layout="circular", size=2, aes(color=performance)) +
+		scale_color_gradient(low="lightgrey", high="black")
+	groups <- unique(d$superordinate_group)
+	colours <- viridis(4, end = .9)
+	for(i in 1:length(groups)) {
+		group_tips <- pull(filter(d, superordinate_group==groups[i], label %in% model_species), label)
+		mrca <- getMRCA(t, group_tips)
+		plot <- plot + geom_hilight(node=mrca, fill=colours[i], alpha=0.25) + geom_tree()
+	}
+	plot <- plot + geom_tiplab2(aes(label=species_latin), colour="black", size=6) +
+		theme(legend.position = "none")
+	return(plot)
+}
+
+
+plot_asr <- function(orig_d, variable, orig_t) {
+
+	# Give variable a standard name
+	orig_d$predictor <- orig_d[[variable]]
+
+	# Filter data to only species with known values
+	d <- orig_d %>% filter(!is.na(predictor))
+
+	# Find species with known values
+	predictor_species <- d %>%
+		pull(label) %>%
+		unique
+
+	# Prune tree to only species with known values
+	t <- keep.tip(orig_t, predictor_species)
+
+	# Turn tree into a tibble
+	tt <- as_tibble(t)
+
+	# Do the ASR and construct a tibble mapping internal nodes to predictor
+	asr <- ape::ace(d$predictor, t, "cont")
+	asrt <- tibble(node=as.integer(names(asr$ace)), predictor=asr$ace)
+
+	# Hack up a tibble mapping external nodes to predictor
+	dt <- left_join(tibble(node=1:length(t$tip.label), label=t$tip.label),
+			d, by="label") %>%
+		select(node, predictor)
+
+	# Join the above two tables so we have predictor for *all* nodes and add that to the tree tibble
+	tt <- left_join(tt, rbind(asrt, dt))
+
+	# Add clade info
+	tt <- left_join(tt, select(d, label, superordinate_group), by="label")
+
+	# Turn table into `treedata` object and plot
+	td <- as.treedata(tt)
+	plot <- ggtree(td, layout="circular", size=2, aes(color=predictor)) +
+	scale_color_gradient(low="lightgrey", high="black")
+	groups <- unique(d$superordinate_group)
+	colours <- viridis(4, end = .9)
+	for(i in 1:length(groups)) {
+		group_tips <- pull(filter(d, superordinate_group==groups[i]), label)
+		mrca <- getMRCA(t, group_tips)
+		plot <- plot + geom_hilight(node=mrca, fill=colours[i], alpha=0.25) + geom_tree()
+	}
+	plot <- plot + theme(legend.position = "none")
+	return(plot)
+}
+
+# Model predictions
+model <- plot_model_pred(d, m, t)
+
+# Predictors
+vocrep <- plot_asr(d, "vocal_repertoire (# vocalization types)", t)
+diet <- plot_asr(d, "dietary_breadth", t)
+hr <- plot_asr(d, "home_range", t)
+gs <- plot_asr(d, "group_size", t)
+
+# Composite
+predictor_composite <- ggarrange(vocrep, diet, hr, gs,
+	labels=c("Vocal repertoire", "Dietary breadth", "Home range", "Group size"))
+whole <- ggarrange(model, predictor_composite,
+		   labels=c("Predicted STM performance", ""))
+ggsave("../figures/phylo_signal.png")
+```
