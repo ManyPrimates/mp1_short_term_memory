@@ -325,13 +325,13 @@ d <- read_xlsx("../data/species_predictors.xlsx") %>%
 t <- read.tree("../phylo/mp_species.tree")
 
 # Read model
-m <- readRDS("../saves/base_model.rds")
+m <- readRDS("../saves/phylo_base_model.rds")
 
 plot_model_pred <- function(d, m, t) {
 	model_species <- unique(m$data$species_english)
 	new_data <- data_frame(species_english=model_species,
 				 site=1:length(model_species), subject_site=1:length(model_species),
-				 delay=0, trial=0)
+				 delay=1, trial=0)
 	predictions <- posterior_linpred(m, newdata=new_data,
 					  allow_new_levels=TRUE, sample_new_levels="old_levels")
 	predictions <- setNames(as.vector(colMeans(predictions)), new_data$species_english)
@@ -361,17 +361,22 @@ plot_model_pred <- function(d, m, t) {
 
 	# Turn table into `treedata` object and plot
 	td <- as.treedata(tt)
-	plot <- ggtree(td, layout="circular", size=2, aes(color=performance)) +
-		scale_color_gradient(low="lightgrey", high="black")
-	groups <- unique(d$superordinate_group)
+	
 	colours <- viridis(4, end = .9)
+		
+	plot <- ggtree(td, layout="circular", size=3, aes(color=performance)) +
+		scale_color_gradient(low="lightgrey", high="black")
+	
+	groups <- unique(d$superordinate_group)
+
 	for(i in 1:length(groups)) {
 		group_tips <- pull(filter(d, superordinate_group==groups[i], label %in% model_species), label)
 		mrca <- getMRCA(t, group_tips)
-		plot <- plot + geom_hilight(node=mrca, fill=colours[i], alpha=0.25) + geom_tree()
+		col = colours[i]
+		plot <- plot + geom_hilight(node=mrca, fill=col, alpha=0.15) + geom_tree()
 	}
-	plot <- plot + geom_tiplab2(aes(label=species_latin), colour="black", size=6) +
-		theme(legend.position = "none")
+	plot <- plot + geom_tiplab2(aes(label=species_latin), colour="black", size=5)+
+	  theme(legend.position = "none")
 	return(plot)
 }
 
@@ -419,7 +424,7 @@ plot_asr <- function(orig_d, variable, orig_t) {
 	for(i in 1:length(groups)) {
 		group_tips <- pull(filter(d, superordinate_group==groups[i]), label)
 		mrca <- getMRCA(t, group_tips)
-		plot <- plot + geom_hilight(node=mrca, fill=colours[i], alpha=0.25) + geom_tree()
+		plot <- plot + geom_hilight(node=mrca, fill=colours[i], alpha=0.15) + geom_tree()
 	}
 	plot <- plot + theme(legend.position = "none")
 	return(plot)
@@ -428,6 +433,20 @@ plot_asr <- function(orig_d, variable, orig_t) {
 # Model predictions
 model <- plot_model_pred(d, m, t)
 
+# Legend for clade
+pcol <- ggplot(tibble(cols = colours, x = 1:4), aes(x, y = 1, col = cols)) +
+  geom_point(size = 6, alpha = .3) +
+  scale_color_identity("Clade", guide = "legend", breaks = cols[4:1], 
+                       labels = c("Hominoidea", "Cercopithecoidea", "Platyrrhini", 
+                                  "Strepsirrhini")) +
+  theme_cowplot()
+
+l1 <- get_legend(pcol)
+
+# add legend to tree plot
+px <- plot_grid(model, plot_grid(NA, l1, NA, ncol = 1, rel_heights = c(.3, .15, .3)), NA,
+          nrow = 1, rel_widths = c(1, .2, .1))
+
 # Predictors
 vocrep <- plot_asr(d, "vocal_repertoire (# vocalization types)", t)
 diet <- plot_asr(d, "dietary_breadth", t)
@@ -435,9 +454,11 @@ hr <- plot_asr(d, "home_range", t)
 gs <- plot_asr(d, "group_size", t)
 
 # Composite
-predictor_composite <- ggarrange(vocrep, diet, hr, gs,
-	labels=c("Vocal repertoire", "Dietary breadth", "Home range", "Group size"))
-whole <- ggarrange(model, predictor_composite,
-		   labels=c("Predicted STM performance", ""))
-ggsave("../figures/phylo_signal.png")
+predictor_composite <- ggarrange(vocrep, diet, gs,
+	labels=c("Vocal repertoire", "Dietary breadth", "Group size"), ncol = 1)
+
+whole <- ggarrange(px, predictor_composite,
+		   labels=c("Predicted STM performance", ""), widths = c(3.5,1))
+
+ggsave("../figures/phylo_signal.pdf", width = 13, height = 10, scale = 1.5)
 ```
